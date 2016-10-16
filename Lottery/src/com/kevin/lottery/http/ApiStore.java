@@ -42,7 +42,7 @@ public class ApiStore {
             }
         };
         HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor(logger);
-        interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+        interceptor.setLevel(HttpLoggingInterceptor.Level.NONE);
 
         OkHttpClient.Builder builder = new OkHttpClient.Builder()
                 .addInterceptor(interceptor)

@@ -1,58 +1,68 @@
 package com.kevin.lottery.event;
 
 import com.google.gson.Gson;
-import com.kevin.lottery.entity.BaseBean;
-import com.kevin.lottery.entity.LotteryBean;
+import com.google.gson.GsonBuilder;
+import com.google.gson.TypeAdapter;
+import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+import com.kevin.lottery.draws.Draw_360;
+import com.kevin.lottery.draws.OnDrawListener;
+import com.kevin.lottery.entity.DrawBean;
 import com.kevin.lottery.http.ApiService;
 import com.kevin.lottery.http.ApiStore;
-import com.kevin.lottery.http.ApiSubscriber;
-import com.kevin.lottery.http.Constant;
 import com.kevin.utils.TextUtils;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
-import rx.Observable;
-import rx.schedulers.Schedulers;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.control.cell.TextFieldTableCell;
 
-import java.time.Instant;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 /**
  * 抽奖业务逻辑
  */
-public class Controller {
+public class Controller implements OnDrawListener {
 
-    @FXML
-    private TextField tf_name, tf_tel, tf_address, tf_base, tf_active, tf_code;
-    @FXML
-    private Button btn_start;
-    @FXML
-    private TextArea ta_content;
+    public TextField tf_name, tf_tel, tf_address, tf_base, tf_active, tf_code;
+
+    public Button btn_start,btn_add,btn_submit;
+
+    public TableView tab_content;
+
+    public TableColumn<DrawBean,String> tc_activityId,tc_verifyCode;
+
+
     private ApiStore apiStore;
     private ApiService apiService;
     private boolean drawing;
     private Task task;
+    private String datas;
+    private ObservableList<DrawBean> drawBeen;
 
     /**
      * 自动抽奖逻辑
      */
-    @FXML
     private void startLottery() {
         task = new Task<Void>(){
             @Override
             protected Void call() throws Exception {
-                while (drawing) {
+                Draw_360 draw_360 = new Draw_360(apiService);
+                while (true) {
                     if (isCancelled()) {
                         drawing = !drawing;
                         break;
                     }
-                    start();
+                    start(draw_360);
                     try {
-                        Thread.sleep(100);
+                        Thread.sleep(2000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                         if (isCancelled()) {
@@ -64,157 +74,113 @@ public class Controller {
                 return null;
             }
         };
-        if (!drawing) {
-            new Thread(task).start();
-        } else {
-            if (task.isRunning()) {
-                task.cancel();
+
+        for (int i = 0; i < drawBeen.size(); i++) {
+                new Thread(task).start();
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
-        btn_start.setText(drawing ? "开始" : "停止");
-        drawing = !drawing;
+
+
+//        if (!drawing) {
+//            for (int i = 0; i < drawBeen.size(); i++) {
+//                new Thread(task).start();
+//            }
+//        } else {
+//            if (task.isRunning()) {
+//                task.cancel();
+//            }
+//        }
+//        btn_start.setText(drawing ? "开始" : "停止");
+//        drawing = !drawing;
     }
 
-    private void start() {
-        try {
-            Map<String, String> requestMap = getRequestMap();
-            addChance(requestMap);
-        } catch (Exception e) {
-            e.printStackTrace();
+    private synchronized void start(Draw_360 draw_360) {
+        if (draw_360 != null) {
+            draw_360.setOnDrawListener(this);
+            draw_360.preDraw(getRequestMap());
+            System.out.println(Thread.currentThread().getName() + "----" + draw_360);
+
+        } else {
+            setContent("抽奖程序未启动...");
         }
     }
 
+
     /**
-     * 增加抽奖机会
-     *
-     * @param requestMap
+     * 布局加载玩会自动执行
      */
-    private void addChance(Map<String, String> requestMap) {
-        Observable<BaseBean<String>> observable = apiService.addChance(requestMap);
-        observable.observeOn(Schedulers.io())
-                .map((bean) -> {
-                    String msg = "增加抽奖机会失败！>>> ";
-                    if (Constant.STATUS_OK.equals(bean.status)) {
-                        msg = "增加抽奖机会成功！机会+" + bean.data;
-                    } else {
-                        msg += bean.data;
-                    }
-                    return msg;
-                })
-                .subscribe(new ApiSubscriber<String>() {
-                    @Override
-                    public void onSuccess(String s) {
-                        setContent(s);
-                    }
+    @FXML
+    private void initialize() {
+        init();
+        initView();
+        initData();
 
-                    @Override
-                    public void onFailure(int code, String msg) {
-                        setContent("错误：" + code + "；" + msg);
-                    }
-
-                    @Override
-                    public void onFinish() {
-                        getChance(requestMap);
-
-                    }
-                });
     }
 
-    /**
-     * 获取机会
-     *
-     * @param requestMap
-     */
-    private void getChance(Map<String, String> requestMap) {
-        requestMap.remove(Constant.TYPE);
-        requestMap.remove(Constant.VERIFY);
-        Observable<BaseBean<String>> observable = apiService.getChance(requestMap);
-        observable.subscribeOn(Schedulers.io())
-                .map(bean -> {
-                    return bean.data;
-                })
-                .subscribe(new ApiSubscriber<String>() {
+    private void init() {
+        apiStore = ApiStore.newInstance(tf_base.getText());
+        apiService = apiStore.getService(ApiService.class);
+        tf_code.setText("TUrnTaBlE7e75c76");
+        tf_active.setText("7e75c7");
 
-                    private int chance;
-
-                    @Override
-                    public void onSuccess(String s) {
-                        setContent(s + "\n");
-                        chance = Integer.parseInt(s);
-                    }
-
-                    @Override
-                    public void onFailure(int code, String msg) {
-                        setContent("错误：" + code + "；" + msg);
-                    }
-
-                    @Override
-                    public void onFinish() {
-                        startDraw(requestMap);
-                    }
-                });
+        File file = new File("/Users/kevin/Desktop/360.txt");
+        datas = TextUtils.file2String(file);
     }
 
-    /**
-     * 抽奖
-     *
-     * @param requestMap
-     */
-    private void startDraw(Map<String, String> requestMap) {
-        String remove = requestMap.remove(Constant.QID);
-        if (remove != null) {
-            requestMap.put(Constant.MID, remove);
+    private void initData() {
+
+        if (!TextUtils.isEmpty(datas)) {
+            Gson gson = getGson();
+            List<DrawBean> tmp = gson.fromJson(datas, new TypeToken<ObservableList<DrawBean>>() {
+            }.getType());
+            drawBeen = FXCollections.observableArrayList(tmp);
         }
-        requestMap.put(Constant.DOWN__, String.valueOf(Instant.now().getEpochSecond()));
-        apiService.startDraw(requestMap)
-                .map(bean -> {
-                    LotteryBean lotteryBean = null;
-                    if (Constant.STATUS_OK.equals(bean.status)) {
-                        lotteryBean = new Gson().fromJson(bean.data, LotteryBean.class);
-                        lotteryBean.hasPrize = true;
-                    } else {
-                        lotteryBean = new LotteryBean();
-                        lotteryBean.drawmark = bean.data;
-                        lotteryBean.hasPrize = false;
-                    }
-                    return lotteryBean;
-                })
-                .subscribeOn(Schedulers.io())
-                .subscribe(new ApiSubscriber<LotteryBean>() {
-                    @Override
-                    public void onSuccess(LotteryBean lotteryBean) {
-                        if (lotteryBean.hasPrize) {
-                            setContent(remove+";恭喜获得：" + lotteryBean.drawmark);
-                            Platform.runLater(()->{
-                                if (task.isRunning()) {
-                                    task.cancel();
-                                }
-                            });
-                            showDialog(lotteryBean.drawmark);
-                        } else {
-                            setContent("很遗憾，未中奖！>>> " +lotteryBean.drawmark);
-                        }
-                    }
+        if (drawBeen != null) {
+            tab_content.setItems(drawBeen);
+        }
+    }
 
-                    @Override
-                    public void onFailure(int code, String msg) {
-                        setContent(msg);
+    private void initView() {
 
-                    }
+        tab_content.setEditable(true);
+        tc_activityId.setEditable(true);
+        tc_verifyCode.setEditable(true);
 
-                    @Override
-                    public void onFinish() {
-                        try {
-                            Thread.sleep(100);
-                            if (drawing) {
-//                                start();
-                            }
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-//                        System.gc();
-                    }
-                });
+        tc_activityId.setCellValueFactory(new PropertyValueFactory<DrawBean, String>("activityId"));
+        tc_verifyCode.setCellValueFactory(new PropertyValueFactory<DrawBean, String>("verifyCode"));
+
+        /**
+         * 为没一列添加可编辑性
+         */
+        tc_activityId.setCellFactory(TextFieldTableCell.<DrawBean>forTableColumn());
+        tc_activityId.setOnEditCommit(e ->{
+            //从tabView中获取 填充表哥的对象
+            ((DrawBean)e.getTableView().getItems().get(e.getTablePosition().getRow())).setActivityId(e.getNewValue());
+        });
+
+        tc_verifyCode.setCellFactory(TextFieldTableCell.<DrawBean>forTableColumn());
+        tc_verifyCode.setOnEditCommit(e ->{
+            ((DrawBean)e.getTableView().getItems().get(e.getTablePosition().getRow())).setVerifyCode(e.getNewValue());
+        });
+
+        btn_start.setOnAction(e->{
+            startLottery();
+        });
+        btn_submit.setOnAction(e ->{
+        });
+        btn_add.setOnAction(e ->{
+            if (drawBeen != null) {
+                boolean add = drawBeen.add(new DrawBean(tf_active.getText(), tf_code.getText(), ""));
+                String str = getGson().toJson(drawBeen);
+                if (add) {
+                    TextUtils.string2File(str, "360.txt", false);
+                }
+            }
+        });
     }
 
     /**
@@ -227,31 +193,15 @@ public class Controller {
         return apiStore.generateMap(tf_active.getText(), tf_code.getText(), true);
     }
 
-    /**
-     * 布局加载玩会自动执行
-     */
-    @FXML
-    private void initialize() {
-        apiStore = ApiStore.newInstance(tf_base.getText());
-        apiService = apiStore.getService(ApiService.class);
-    }
-
-    /**
-     * 提交信息逻辑
-     */
-    @FXML
-    private void submitInfo() {
-        String name = tf_name.getText();
-        String tel = tf_tel.getText();
-        String add = tf_address.getText();
-    }
-
     private void showDialog(String drawmark) {
         Platform.runLater(()->{
             btn_start.setText("开始");
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("恭喜获得：");
             alert.setContentText(drawmark);
+            alert.setOnCloseRequest(e -> {
+                System.out.println("guanbi le ");
+            });
             alert.show();
         });
     }
@@ -263,7 +213,58 @@ public class Controller {
      */
     private void setContent(String content) {
         Platform.runLater(()->{
-            ta_content.setText(TextUtils.getCurrentTime() + content + "\n");
+//            ta_content.setText(TextUtils.getCurrentTime() + content + "\n");
         });
+    }
+
+    @Override
+    public void onDraw(String str) {
+        setContent(str);
+    }
+
+    @Override
+    public void alertDialog(String str) {
+        if (task.isRunning()) {
+            task.cancel();
+        }
+        showDialog(str);
+    }
+
+    /**
+     * 根据需求自定义gson解析器，用于解析ObservableList集合
+     * @return
+     */
+    private Gson getGson() {
+        return new GsonBuilder().registerTypeAdapter(DrawBean.class, new TypeAdapter<DrawBean>() {
+            @Override
+            public void write(JsonWriter jsonWriter, DrawBean drawBeen) throws IOException {
+                jsonWriter.beginObject()
+                        .name("activityId").value(drawBeen.getActivityId())
+                        .name("verifyCode").value(drawBeen.getVerifyCode())
+                        .name("prizeName").value(drawBeen.getContent())
+                        .endObject();
+            }
+
+            @Override
+            public DrawBean read(JsonReader jsonReader) throws IOException {
+                DrawBean drawBean = new DrawBean();
+                jsonReader.beginObject();
+                while (jsonReader.hasNext()) {
+                    switch (jsonReader.nextName()) {
+                        case "activityId":
+                            drawBean.setActivityId(jsonReader.nextString());
+                            break;
+                        case "verifyCode":
+                            drawBean.setVerifyCode(jsonReader.nextString());
+                            break;
+                        case "prizeName":
+                            drawBean.setContent(jsonReader.nextString());
+                            break;
+                    }
+                }
+                jsonReader.endObject();
+                return drawBean;
+            }
+        }).create();
     }
 }
