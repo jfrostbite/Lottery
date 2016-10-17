@@ -20,6 +20,16 @@ public class Draw_360 implements Draw<Void>{
     private ApiService apiService;
     private OnDrawListener mListener;
 
+    public int getIndex() {
+        return index;
+    }
+
+    public void setIndex(int index) {
+        this.index = index;
+    }
+
+    private int index;
+
     public Draw_360(ApiService apiService){
         super();
 
@@ -68,14 +78,14 @@ public class Draw_360 implements Draw<Void>{
                     @Override
                     public void onSuccess(String s) {
                         if (mListener!=null) {
-                            mListener.onDraw(s);
+                            mListener.onDraw(index,s);
                         }
                     }
 
                     @Override
                     public void onFailure(int code, String msg) {
                         if (mListener!=null) {
-                            mListener.onDraw("错误：" + code + "；" + msg);
+                            mListener.onDraw(index,"错误：" + code + "；" + msg);
                         }
                     }
 
@@ -108,7 +118,7 @@ public class Draw_360 implements Draw<Void>{
                     @Override
                     public void onSuccess(String s) {
                         if (mListener!=null) {
-                            mListener.onDraw(s + "\n");
+                            mListener.onDraw(index,s + "\n");
                         }
                         chance = Integer.parseInt(s);
                     }
@@ -116,7 +126,7 @@ public class Draw_360 implements Draw<Void>{
                     @Override
                     public void onFailure(int code, String msg) {
                         if (mListener!=null) {
-                            mListener.onDraw("错误：" + code + "；" + msg);
+                            mListener.onDraw(index,"错误：" + code + "；" + msg);
                         }
                     }
 
@@ -159,12 +169,12 @@ public class Draw_360 implements Draw<Void>{
                     public void onSuccess(LotteryBean lotteryBean) {
                         if (lotteryBean.hasPrize) {
                             if (mListener!=null) {
-                                mListener.onDraw(remove+";恭喜获得：" + lotteryBean.drawmark);
+                                mListener.onDraw(index,remove+";恭喜获得：" + lotteryBean.drawmark);
                                 mListener.alertDialog(lotteryBean.drawmark);
                             }
                         } else {
                             if (mListener!=null) {
-                                mListener.onDraw("很遗憾，未中奖！>>> " +lotteryBean.drawmark);
+                                mListener.onDraw(index,"很遗憾，未中奖！>>> " +lotteryBean.drawmark);
                             }
                         }
                     }
@@ -172,7 +182,7 @@ public class Draw_360 implements Draw<Void>{
                     @Override
                     public void onFailure(int code, String msg) {
                         if (mListener!=null) {
-                            mListener.onDraw(msg);
+                            mListener.onDraw(index,msg);
                         }
 
                     }

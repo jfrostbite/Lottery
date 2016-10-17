@@ -5,7 +5,7 @@ package com.kevin.lottery.draws;
  */
 public interface OnDrawListener {
 
-    void onDraw(String str);
+    void onDraw(int index, String str);
 
     void alertDialog(String str);
 }

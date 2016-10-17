@@ -15,6 +15,7 @@ import com.kevin.utils.TextUtils;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -37,7 +38,7 @@ public class Controller implements OnDrawListener {
 
     public TableView tab_content;
 
-    public TableColumn<DrawBean,String> tc_activityId,tc_verifyCode;
+    public TableColumn<DrawBean,String> tc_activityId,tc_verifyCode,tc_content;
 
 
     private ApiStore apiStore;
@@ -46,6 +47,8 @@ public class Controller implements OnDrawListener {
     private Task task;
     private String datas;
     private ObservableList<DrawBean> drawBeen;
+    private int i = 0;
+
 
     /**
      * 自动抽奖逻辑
@@ -55,57 +58,78 @@ public class Controller implements OnDrawListener {
             @Override
             protected Void call() throws Exception {
                 Draw_360 draw_360 = new Draw_360(apiService);
-                while (true) {
+                draw_360.setIndex(i++);
+                while (drawing) {
                     if (isCancelled()) {
-                        drawing = !drawing;
+                        drawing = false;
                         break;
                     }
                     start(draw_360);
-                    try {
-                        Thread.sleep(2000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                        if (isCancelled()) {
-                            drawing = !drawing;
-                            break;
-                        }
-                    }
+                    Thread.sleep(100);
                 }
                 return null;
             }
         };
 
-        for (int i = 0; i < drawBeen.size(); i++) {
-                new Thread(task).start();
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+        Service<Void> service = new Service<Void>(){
+            @Override
+            protected Task createTask() {
+                return new Task() {
+                    @Override
+                    protected Void call() throws Exception {
+                        Draw_360 draw_360 = new Draw_360(apiService);
+                        draw_360.setIndex(i++);
+                        while (drawing) {
+                            if (isCancelled()) {
+                                drawing = false;
+                                break;
+                            }
+                            Controller.this.start(draw_360);
+                            Thread.sleep(100);
+                        }
+                        return null;
+                    }
+                };
+            }
+        };
+
+        if (!drawing) {
+            for (int j = 0; j < 2 ; j++) {
+                Thread thread = new Thread(new Task<Void>(){
+                    @Override
+                    protected Void call() throws Exception {
+                        Draw_360 draw_360 = new Draw_360(apiService);
+                        draw_360.setIndex(i++);
+                        while (drawing) {
+                            if (isCancelled()) {
+                                drawing = false;
+                                break;
+                            }
+                            start(draw_360);
+                            Thread.sleep(100);
+                        }
+                        return null;
+                    }
+                });
+                thread.setDaemon(true);
+                thread.start();
+            }
+//                service.start();
+        } else {
+            if (task.isRunning()) {
+                boolean cancel = task.cancel();
             }
         }
-
-
-//        if (!drawing) {
-//            for (int i = 0; i < drawBeen.size(); i++) {
-//                new Thread(task).start();
-//            }
-//        } else {
-//            if (task.isRunning()) {
-//                task.cancel();
-//            }
-//        }
-//        btn_start.setText(drawing ? "开始" : "停止");
-//        drawing = !drawing;
+        btn_start.setText(drawing ? "开始" : "停止");
+        drawing = !drawing;
     }
 
-    private synchronized void start(Draw_360 draw_360) {
+    private void start(Draw_360 draw_360) {
         if (draw_360 != null) {
             draw_360.setOnDrawListener(this);
-            draw_360.preDraw(getRequestMap());
-            System.out.println(Thread.currentThread().getName() + "----" + draw_360);
-
+            draw_360.preDraw(getRequestMap(draw_360.getIndex()));
         } else {
-            setContent("抽奖程序未启动...");
+            setContent(draw_360.getIndex(),"抽奖程序未启动...");
         }
     }
 
@@ -152,6 +176,7 @@ public class Controller implements OnDrawListener {
 
         tc_activityId.setCellValueFactory(new PropertyValueFactory<DrawBean, String>("activityId"));
         tc_verifyCode.setCellValueFactory(new PropertyValueFactory<DrawBean, String>("verifyCode"));
+        tc_content.setCellValueFactory(new PropertyValueFactory<DrawBean, String>("content"));
 
         /**
          * 为没一列添加可编辑性
@@ -188,9 +213,9 @@ public class Controller implements OnDrawListener {
      *
      * @return
      */
-    private Map<String, String> getRequestMap() {
+    private Map<String, String> getRequestMap(int index) {
         apiStore.setType("6");
-        return apiStore.generateMap(tf_active.getText(), tf_code.getText(), true);
+        return apiStore.generateMap(drawBeen.get(index).getActivityId(), drawBeen.get(index).getVerifyCode(), true);
     }
 
     private void showDialog(String drawmark) {
@@ -211,15 +236,17 @@ public class Controller implements OnDrawListener {
      *
      * @param content
      */
-    private void setContent(String content) {
+    private void setContent(int index,String content) {
         Platform.runLater(()->{
 //            ta_content.setText(TextUtils.getCurrentTime() + content + "\n");
+            drawBeen.get(index).setContent(content);
+//            System.out.println(content);
         });
     }
 
     @Override
-    public void onDraw(String str) {
-        setContent(str);
+    public void onDraw(int index,String str) {
+        setContent(index,str);
     }
 
     @Override

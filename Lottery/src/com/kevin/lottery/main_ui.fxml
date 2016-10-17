@@ -48,7 +48,7 @@
                     <columns>
                       <TableColumn fx:id="tc_activityId" prefWidth="75.0" text="ActivityId" />
                       <TableColumn fx:id="tc_verifyCode" prefWidth="75.0" text="VerifyCode" />
-                        <TableColumn prefWidth="443.0" text="内容" />
+                        <TableColumn fx:id="tc_content" prefWidth="443.0" text="内容" />
                     </columns>
                   </TableView>
                </children>
