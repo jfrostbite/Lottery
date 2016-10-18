@@ -94,7 +94,8 @@ public class TextUtils {
      * 字符串序列化
      */
     public static boolean string2File(String datas, String fileName, boolean append) {
-        File path = new File("/Users/kevin/Desktop");
+
+        String path = System.getProperty("user.dir");
         File file = new File(path,fileName);
         try {
             if (!file.exists()) {

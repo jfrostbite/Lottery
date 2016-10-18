@@ -9,13 +9,13 @@ import com.google.gson.stream.JsonWriter;
 import com.kevin.lottery.draws.Draw_360;
 import com.kevin.lottery.draws.OnDrawListener;
 import com.kevin.lottery.entity.DrawBean;
+import com.kevin.lottery.helper.ThreadPoolHelper;
 import com.kevin.lottery.http.ApiService;
 import com.kevin.lottery.http.ApiStore;
 import com.kevin.utils.TextUtils;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -24,8 +24,11 @@ import javafx.scene.control.cell.TextFieldTableCell;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 
 /**
  * 抽奖业务逻辑
@@ -34,94 +37,54 @@ public class Controller implements OnDrawListener {
 
     public TextField tf_name, tf_tel, tf_address, tf_base, tf_active, tf_code;
 
-    public Button btn_start,btn_add,btn_submit;
+    public Button btn_start, btn_add, btn_submit;
 
     public TableView tab_content;
 
-    public TableColumn<DrawBean,String> tc_activityId,tc_verifyCode,tc_content;
+    public TableColumn<DrawBean, String> tc_activityId, tc_verifyCode, tc_content;
 
 
     private ApiStore apiStore;
     private ApiService apiService;
     private boolean drawing;
-    private Task task;
     private String datas;
     private ObservableList<DrawBean> drawBeen;
-    private int i = 0;
+    private LinkedList<DrawTask> drawTasks = new LinkedList<DrawTask>();
 
 
     /**
      * 自动抽奖逻辑
      */
     private void startLottery() {
-        task = new Task<Void>(){
-            @Override
-            protected Void call() throws Exception {
-                Draw_360 draw_360 = new Draw_360(apiService);
-                draw_360.setIndex(i++);
-                while (drawing) {
-                    if (isCancelled()) {
-                        drawing = false;
-                        break;
-                    }
-                    start(draw_360);
-                    Thread.sleep(100);
-                }
-                return null;
-            }
-        };
-
-        Service<Void> service = new Service<Void>(){
-            @Override
-            protected Task createTask() {
-                return new Task() {
-                    @Override
-                    protected Void call() throws Exception {
-                        Draw_360 draw_360 = new Draw_360(apiService);
-                        draw_360.setIndex(i++);
-                        while (drawing) {
-                            if (isCancelled()) {
-                                drawing = false;
-                                break;
-                            }
-                            Controller.this.start(draw_360);
-                            Thread.sleep(100);
-                        }
-                        return null;
-                    }
-                };
-            }
-        };
 
         if (!drawing) {
-            for (int j = 0; j < 2 ; j++) {
-                Thread thread = new Thread(new Task<Void>(){
-                    @Override
-                    protected Void call() throws Exception {
-                        Draw_360 draw_360 = new Draw_360(apiService);
-                        draw_360.setIndex(i++);
-                        while (drawing) {
-                            if (isCancelled()) {
-                                drawing = false;
-                                break;
-                            }
-                            start(draw_360);
-                            Thread.sleep(100);
-                        }
-                        return null;
-                    }
-                });
-                thread.setDaemon(true);
-                thread.start();
+
+            BlockingQueue<Runnable> queue = ThreadPoolHelper.newInstace().getQueue();
+
+
+            for (int i = 0; i < drawBeen.size(); i++) {
+//                Thread thread = new Thread();
+//                thread.setDaemon(true);
+//                thread.start();
+                if (drawTasks != null) {
+
+                }
+                DrawTask task = new DrawTask(i);
+                drawTasks.add(task);
+                ThreadPoolHelper.newInstace().execute(task);
             }
 //                service.start();
         } else {
-            if (task.isRunning()) {
-                boolean cancel = task.cancel();
+            for (DrawTask drawTask : drawTasks) {
+                if (drawTask.isRunning()) {
+                    boolean cancel = drawTask.cancel();
+                }
+                ThreadPoolHelper.newInstace().cancel(drawTask);
             }
         }
         btn_start.setText(drawing ? "开始" : "停止");
         drawing = !drawing;
+
     }
 
     private void start(Draw_360 draw_360) {
@@ -129,7 +92,7 @@ public class Controller implements OnDrawListener {
             draw_360.setOnDrawListener(this);
             draw_360.preDraw(getRequestMap(draw_360.getIndex()));
         } else {
-            setContent(draw_360.getIndex(),"抽奖程序未启动...");
+            setContent(draw_360.getIndex(), "抽奖程序未启动...");
         }
     }
 
@@ -142,7 +105,6 @@ public class Controller implements OnDrawListener {
         init();
         initView();
         initData();
-
     }
 
     private void init() {
@@ -151,18 +113,20 @@ public class Controller implements OnDrawListener {
         tf_code.setText("TUrnTaBlE7e75c76");
         tf_active.setText("7e75c7");
 
-        File file = new File("/Users/kevin/Desktop/360.txt");
+        File file = new File(System.getProperty("user.dir"), "360.txt");
         datas = TextUtils.file2String(file);
     }
 
     private void initData() {
-
+        List<DrawBean> tmp = null;
         if (!TextUtils.isEmpty(datas)) {
             Gson gson = getGson();
-            List<DrawBean> tmp = gson.fromJson(datas, new TypeToken<ObservableList<DrawBean>>() {
+            tmp = gson.fromJson(datas, new TypeToken<ObservableList<DrawBean>>() {
             }.getType());
-            drawBeen = FXCollections.observableArrayList(tmp);
+        } else {
+            tmp = new ArrayList<>();
         }
+        drawBeen = FXCollections.observableArrayList(tmp);
         if (drawBeen != null) {
             tab_content.setItems(drawBeen);
         }
@@ -182,29 +146,32 @@ public class Controller implements OnDrawListener {
          * 为没一列添加可编辑性
          */
         tc_activityId.setCellFactory(TextFieldTableCell.<DrawBean>forTableColumn());
-        tc_activityId.setOnEditCommit(e ->{
+        tc_activityId.setOnEditCommit(e -> {
             //从tabView中获取 填充表哥的对象
-            ((DrawBean)e.getTableView().getItems().get(e.getTablePosition().getRow())).setActivityId(e.getNewValue());
+            ((DrawBean) e.getTableView().getItems().get(e.getTablePosition().getRow())).setActivityId(e.getNewValue());
         });
 
         tc_verifyCode.setCellFactory(TextFieldTableCell.<DrawBean>forTableColumn());
-        tc_verifyCode.setOnEditCommit(e ->{
-            ((DrawBean)e.getTableView().getItems().get(e.getTablePosition().getRow())).setVerifyCode(e.getNewValue());
+        tc_verifyCode.setOnEditCommit(e -> {
+            ((DrawBean) e.getTableView().getItems().get(e.getTablePosition().getRow())).setVerifyCode(e.getNewValue());
         });
 
-        btn_start.setOnAction(e->{
+        btn_start.setOnAction(e -> {
             startLottery();
         });
-        btn_submit.setOnAction(e ->{
+        btn_submit.setOnAction(e -> {
         });
-        btn_add.setOnAction(e ->{
-            if (drawBeen != null) {
+        btn_add.setOnAction(e -> {
+            /*if (drawBeen != null) {
                 boolean add = drawBeen.add(new DrawBean(tf_active.getText(), tf_code.getText(), ""));
                 String str = getGson().toJson(drawBeen);
                 if (add) {
                     TextUtils.string2File(str, "360.txt", false);
                 }
-            }
+            }*/
+
+            ThreadPoolHelper.newInstace().getTaskInfo();
+
         });
     }
 
@@ -219,7 +186,7 @@ public class Controller implements OnDrawListener {
     }
 
     private void showDialog(String drawmark) {
-        Platform.runLater(()->{
+        Platform.runLater(() -> {
             btn_start.setText("开始");
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("恭喜获得：");
@@ -236,29 +203,32 @@ public class Controller implements OnDrawListener {
      *
      * @param content
      */
-    private void setContent(int index,String content) {
-        Platform.runLater(()->{
+    private void setContent(int index, String content) {
+        Platform.runLater(() -> {
 //            ta_content.setText(TextUtils.getCurrentTime() + content + "\n");
-            drawBeen.get(index).setContent(content);
+            drawBeen.get(index).setContent(TextUtils.getCurrentTime() + content);
 //            System.out.println(content);
         });
     }
 
     @Override
-    public void onDraw(int index,String str) {
-        setContent(index,str);
+    public void onDraw(int index, String str) {
+        setContent(index, str);
     }
 
     @Override
     public void alertDialog(String str) {
-        if (task.isRunning()) {
-            task.cancel();
+        for (DrawTask drawTask : drawTasks) {
+            if (drawTask.isRunning()) {
+                drawTask.cancel();
+            }
         }
         showDialog(str);
     }
 
     /**
      * 根据需求自定义gson解析器，用于解析ObservableList集合
+     *
      * @return
      */
     private Gson getGson() {
@@ -293,5 +263,30 @@ public class Controller implements OnDrawListener {
                 return drawBean;
             }
         }).create();
+    }
+
+    class DrawTask extends Task<Void> {
+
+        private int index;
+
+        public DrawTask(int index) {
+
+            this.index = index;
+        }
+
+        @Override
+        protected Void call() throws Exception {
+            Draw_360 draw_360 = new Draw_360(apiService);
+            draw_360.setIndex(index);
+            do {
+                if (isCancelled()) {
+                    drawing = false;
+                    break;
+                }
+                start(draw_360);
+                Thread.sleep(100);
+            } while (drawing);
+            return null;
+        }
     }
 }

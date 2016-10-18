@@ -29,7 +29,8 @@ public class Main extends Application {
     }
 
     private void loadProperties() {
-        file = new File("/Users/kevin/Desktop/360.txt");
+        String property = System.getProperties().getProperty("user.dir");
+        file = new File(property,"360.txt");
         try {
             if (!file.exists()) {
                 file.createNewFile();

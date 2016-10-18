@@ -86,6 +86,7 @@ public class ApiStore {
      * 获取通用参数,需要活动信息固定参数
      */
     public Map<String, String> generateMap(String active,String verifyCode, boolean isAdd) {
+        System.out.println(Thread.currentThread().getName());
         if (map == null) {
             map = new TreeMap<>();
         } else {
