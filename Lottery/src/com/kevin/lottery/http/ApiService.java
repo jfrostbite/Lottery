@@ -1,8 +1,8 @@
 package com.kevin.lottery.http;
 
 import com.kevin.lottery.entity.BaseBean;
-import retrofit2.http.GET;
-import retrofit2.http.QueryMap;
+import com.kevin.lottery.entity.PocoBean;
+import retrofit2.http.*;
 import rx.Observable;
 
 import java.util.Map;
@@ -35,4 +35,18 @@ public interface ApiService {
      */
     @GET(Constant.QUERY+"/useraddress")
     Observable<BaseBean<String>> sendInfo(@QueryMap Map<String, String> map);
+
+    /**
+     * poco抽奖
+     */
+    @FormUrlEncoded
+    @POST("http://www1.poco.cn/topic/qing_special/app_rotate/ajaxPrize.php")
+    Observable<PocoBean> ajaxPrize(@Header("Cookie") String cookie, @FieldMap Map<String,String> fieldMap);
+
+    /**
+     * 提交
+     */
+    @FormUrlEncoded
+    @POST("http://www1.poco.cn/topic/qing_special/app_rotate/ajaxSave.php")
+    Observable<PocoBean> ajaxSave(@Header("Cookie") String cookie, @FieldMap Map<String, String> fieldMap);
 }

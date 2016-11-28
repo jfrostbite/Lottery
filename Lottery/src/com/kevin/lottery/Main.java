@@ -24,7 +24,7 @@ public class Main extends Application {
         this.primaryStage = primaryStage;
         this.primaryStage.setTitle("360活动抽奖集合");
         initRootLayout();
-        loadProperties();
+//        loadProperties();
         inflateLayout();
     }
 

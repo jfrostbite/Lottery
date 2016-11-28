@@ -3,22 +3,28 @@ package com.kevin.lottery.draws;
 import com.google.gson.Gson;
 import com.kevin.lottery.entity.BaseBean;
 import com.kevin.lottery.entity.LotteryBean;
+import com.kevin.lottery.entity.RequestBean;
 import com.kevin.lottery.http.ApiService;
 import com.kevin.lottery.http.ApiSubscriber;
 import com.kevin.lottery.http.Constant;
+import com.kevin.lottery.utils.MD5Utils;
+import com.kevin.utils.RandomUtils;
 import rx.Observable;
-import rx.schedulers.Schedulers;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Created by kevin on 2016/10/16.
  */
-public class Draw_360 implements Draw<Void>{
+public class Draw_360 implements Draw{
 
     private ApiService apiService;
     private OnDrawListener mListener;
+    private RequestBean requestBean;
+    private Map<String,String> map;
+    private String type;
 
     public int getIndex() {
         return index;
@@ -28,26 +34,29 @@ public class Draw_360 implements Draw<Void>{
         this.index = index;
     }
 
-    private int index;
+    private volatile int index;
 
     public Draw_360(ApiService apiService){
         super();
 
         this.apiService = apiService;
+        requestBean = new RequestBean();
     }
 
     @Override
-    public void preDraw(Map requestMap) {
+    public Draw preDraw(Map requestMap) {
         addChance(requestMap);
+        return this;
     }
 
     @Override
-    public void draw() {
+    public Draw draw() {
 
+        return this;
     }
 
     @Override
-    public void submit() {
+    public void submit(Map map) {
 
     }
 
@@ -64,8 +73,7 @@ public class Draw_360 implements Draw<Void>{
      */
     private void addChance(Map<String, String> requestMap) {
         Observable<BaseBean<String>> observable = apiService.addChance(requestMap);
-        observable.observeOn(Schedulers.io())
-                .map((bean) -> {
+        observable.map((bean) -> {
                     String msg = "增加抽奖机会失败！>>> ";
                     if (Constant.STATUS_OK.equals(bean.status)) {
                         msg = "增加抽奖机会成功！机会+" + bean.data;
@@ -107,8 +115,7 @@ public class Draw_360 implements Draw<Void>{
         requestMap.remove(Constant.TYPE);
         requestMap.remove(Constant.VERIFY);
         Observable<BaseBean<String>> observable = apiService.getChance(requestMap);
-        observable.subscribeOn(Schedulers.io())
-                .map(bean -> {
+        observable.map(bean -> {
                     return bean.data;
                 })
                 .subscribe(new ApiSubscriber<String>() {
@@ -149,6 +156,7 @@ public class Draw_360 implements Draw<Void>{
         if (remove != null) {
             requestMap.put(Constant.MID, remove);
         }
+        String mid = requestMap.get(Constant.MID);
         requestMap.put(Constant.DOWN__, String.valueOf(Instant.now().getEpochSecond()));
         apiService.startDraw(requestMap)
                 .map(bean -> {
@@ -163,14 +171,13 @@ public class Draw_360 implements Draw<Void>{
                     }
                     return lotteryBean;
                 })
-                .subscribeOn(Schedulers.io())
                 .subscribe(new ApiSubscriber<LotteryBean>() {
                     @Override
                     public void onSuccess(LotteryBean lotteryBean) {
                         if (lotteryBean.hasPrize) {
                             if (mListener!=null) {
-                                mListener.onDraw(index,remove+";恭喜获得：" + lotteryBean.drawmark);
-                                mListener.alertDialog(lotteryBean.drawmark);
+                                mListener.onDraw(index,";恭喜获得：" + lotteryBean.drawmark);
+                                mListener.alertDialog(lotteryBean.drawmark,mid);
                             }
                         } else {
                             if (mListener!=null) {
@@ -199,5 +206,36 @@ public class Draw_360 implements Draw<Void>{
      * 提交信息逻辑
      */
     private void submitInfo() {
+    }
+
+    /**
+     * 获取通用参数,需要活动信息固定参数
+     */
+    public Map<String, String> generateMap(String active,String verifyCode, boolean isAdd) {
+        if (map == null) {
+            map = new TreeMap<>();
+        } else {
+            map.clear();
+        }
+        requestBean.down_ = String.valueOf(System.currentTimeMillis());
+        requestBean.down__ = String.valueOf(System.currentTimeMillis() + 123);
+        requestBean.active = active;
+        String deviceId = "86" + RandomUtils.generateNumString(13);
+        requestBean.qid = MD5Utils.md5(deviceId);
+        requestBean.mid = requestBean.qid;
+        requestBean.type = type;
+        requestBean.verify = MD5Utils.md5(verifyCode + requestBean.mid);
+        map.put(Constant.ACTIVE, requestBean.active);
+//        map.put(Constant.DOWN_, requestBean.down_);
+        map.put(Constant.QID, requestBean.mid);
+        if (isAdd) {
+            map.put(Constant.TYPE, requestBean.type);
+            map.put(Constant.VERIFY, requestBean.verify);
+        }
+        return map;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }

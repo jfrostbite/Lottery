@@ -10,17 +10,17 @@ public interface Draw<T> {
     /**
      * 抽奖准备
      */
-    void preDraw(Map requestMap);
+    Draw preDraw(Map requestMap);
 
     /**
      * 抽奖
      */
-    void draw();
+    Draw draw();
 
     /**
      * 设置收货地址
      */
-    void submit();
+    void submit(Map map);
 
     /**
      * 设置监听器

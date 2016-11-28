@@ -50,11 +50,11 @@ public class ThreadPoolHelper {
 
     /**
      * 取消线程、任务
-     * @param task
+     *
      * @return
      */
-    public void cancel(Runnable task) {
-        executor.purge();
+    public void cancel() {
+
     }
 
     public String getTaskInfo(){

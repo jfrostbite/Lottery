@@ -7,5 +7,7 @@ public interface OnDrawListener {
 
     void onDraw(int index, String str);
 
-    void alertDialog(String str);
+    void alertDialog(String... str);
+
+    void saveLog(String... str);
 }

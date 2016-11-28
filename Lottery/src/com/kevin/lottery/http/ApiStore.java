@@ -1,8 +1,5 @@
 package com.kevin.lottery.http;
 
-import com.kevin.lottery.entity.RequestBean;
-import com.kevin.lottery.utils.MD5Utils;
-import com.kevin.utils.RandomUtils;
 import okhttp3.*;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
@@ -10,11 +7,8 @@ import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 import java.io.IOException;
-import java.net.CookieManager;
-import java.net.CookiePolicy;
+import java.net.*;
 import java.time.Instant;
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -27,13 +21,9 @@ public class ApiStore {
     private static String drawer;
     private final OkHttpClient okHttpClient;
     private final Retrofit retrofit;
-    private final RequestBean requestBean;
-    private String type;
-    private TreeMap<String, String> map;
 
     private ApiStore() {
-        //初始化请求参数
-        requestBean = new RequestBean();
+
         //设置Okhttp
         HttpLoggingInterceptor.Logger logger = new HttpLoggingInterceptor.Logger(){
             @Override
@@ -42,7 +32,7 @@ public class ApiStore {
             }
         };
         HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor(logger);
-        interceptor.setLevel(HttpLoggingInterceptor.Level.NONE);
+        interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
 
         OkHttpClient.Builder builder = new OkHttpClient.Builder()
                 .addInterceptor(interceptor)
@@ -83,41 +73,6 @@ public class ApiStore {
     }
 
     /**
-     * 获取通用参数,需要活动信息固定参数
-     */
-    public Map<String, String> generateMap(String active,String verifyCode, boolean isAdd) {
-        System.out.println(Thread.currentThread().getName());
-        if (map == null) {
-            map = new TreeMap<>();
-        } else {
-            map.clear();
-        }
-        requestBean.down_ = String.valueOf(System.currentTimeMillis());
-        requestBean.down__ = String.valueOf(System.currentTimeMillis() + 123);
-        requestBean.active = active;
-        String deviceId = "86" + RandomUtils.generateNumString(13);
-        requestBean.qid = MD5Utils.md5(deviceId);
-        requestBean.mid = requestBean.qid;
-        requestBean.type = type;
-        requestBean.verify = MD5Utils.md5(verifyCode + requestBean.mid);
-        map.put(Constant.ACTIVE, requestBean.active);
-//        map.put(Constant.DOWN_, requestBean.down_);
-        map.put(Constant.QID, requestBean.mid);
-        if (isAdd) {
-            map.put(Constant.TYPE, requestBean.type);
-            map.put(Constant.VERIFY, requestBean.verify);
-        }
-        return map;
-    }
-
-    /**
-     * 设置获取抽奖次数的类型参数
-     */
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    /**
      * 通用请求头Head
      *
      * okhttp的拦截器利用chain 获取Resquest 利用Request 设置新的Request，利用Request获取Response
@@ -129,7 +84,8 @@ public class ApiStore {
             public Response intercept(Chain chain) throws IOException {
                 Request request = chain.request()
                         .newBuilder()
-                        .header("X-Requested-With","com.qihoo.appstore")
+//                        .header("X-Requested-With","com.qihoo.appstore")
+                        .header("X-Requested-With", "XMLHttpRequest")
                         .header("User-Agent","Mozilla/5.0 (Linux; Android 6.0.1; MI NOTE LTE Build/MMB29M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/51.0.2704.81 Mobile Safari/537.36;360appstore")
                         .build();
                 Response response = chain.proceed(request);
@@ -150,7 +106,7 @@ public class ApiStore {
                 HttpUrl httpUrl = chain.request()
                         .url()
                         .newBuilder()
-                        .addQueryParameter(Constant.DOWN_, String.valueOf(Instant.now().getEpochSecond()))
+                        .addQueryParameter(Constant.V, String.valueOf(Instant.now().getEpochSecond()))
                         .build();
                 //重建Request，添加重建后的HttpUrl
                 Request request = chain.request()
@@ -179,7 +135,7 @@ public class ApiStore {
      */
     private CookieJar generateCookie () {
         CookieManager cookieManager = new CookieManager();
-        cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ALL);
+        cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_NONE);
         JavaNetCookieJar javaNetCookieJar = new JavaNetCookieJar(cookieManager);
         return javaNetCookieJar;
     }
