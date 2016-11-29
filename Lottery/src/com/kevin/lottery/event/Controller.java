@@ -2,9 +2,7 @@ package com.kevin.lottery.event;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.kevin.lottery.draws.Draw_360;
-import com.kevin.lottery.draws.Draw_Poco;
-import com.kevin.lottery.draws.OnDrawListener;
+import com.kevin.lottery.draws.*;
 import com.kevin.lottery.entity.DrawBean;
 import com.kevin.lottery.helper.ThreadPoolHelper;
 import com.kevin.lottery.http.ApiService;
@@ -75,6 +73,21 @@ public class Controller implements OnDrawListener {
             requestMap.put("mobile",tf_tel.getText().trim());
             requestMap.put("addr",tf_address.getText().trim());
             draw.preDraw(requestMap).draw();
+        } else {
+            setContent(draw.getIndex(), "抽奖程序未启动...");
+        }
+    }
+
+    private void start(Draw_Baby draw) {
+        if (draw != null) {
+            draw.setOnDrawListener(this);
+            Map<String, String> requestMap = getRequestMap(draw);
+            draw.preDraw(requestMap);
+            String code = apiStore.cookie.split(";")[0].split("=")[1];
+            requestMap.put("code",code);
+            requestMap.put("channel","xmthank");
+            requestMap.put("versionCode","2.0.1");
+            draw.draw(requestMap);
         } else {
             setContent(draw.getIndex(), "抽奖程序未启动...");
         }
@@ -194,6 +207,10 @@ public class Controller implements OnDrawListener {
         return draw.generateMap();
     }
 
+    private synchronized Map<String, String> getRequestMap(Draw_Baby draw) {
+        return draw.generateMap();
+    }
+
     private void showDialog(String drawmark) {
         Platform.runLater(() -> {
             btn_start.setText("开始");
@@ -248,7 +265,8 @@ public class Controller implements OnDrawListener {
         protected Void call() throws Exception {
 //            Draw_360 draw_360 = new Draw_360(apiService);
 //            draw_360.setIndex(index);
-            Draw_Poco draw = new Draw_Poco(index, apiService);
+//            Draw_Poco draw = new Draw_Poco(index, apiService);
+            Draw_Baby draw = new Draw_Baby(index, apiService);
             do {
                 if (!drawing) {
                     drawing = false;

@@ -49,4 +49,17 @@ public interface ApiService {
     @FormUrlEncoded
     @POST("http://www1.poco.cn/topic/qing_special/app_rotate/ajaxSave.php")
     Observable<PocoBean> ajaxSave(@Header("Cookie") String cookie, @FieldMap Map<String, String> fieldMap);
+
+    /**
+     * 宝宝故事抽奖主页
+     */
+    @GET("http://m.babystory365.com/activity/thank_draw.htm?code=&versionCode=2.0.1&channel=xmthank")
+    Observable preDraw();
+
+    /**
+     * 宝宝故事抽奖
+     */
+    @FormUrlEncoded
+    @POST("http://m.babystory365.com/activity/thank_draw.htm?actionMethod=doDraw")
+    Observable doDraw(@FieldMap Map<String,String> map);
 }

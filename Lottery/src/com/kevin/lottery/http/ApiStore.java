@@ -5,6 +5,7 @@ import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
+import rx.Observable;
 
 import java.io.IOException;
 import java.net.*;
@@ -21,11 +22,12 @@ public class ApiStore {
     private static String drawer;
     private final OkHttpClient okHttpClient;
     private final Retrofit retrofit;
+    public String cookie;
 
     private ApiStore() {
 
         //设置Okhttp
-        HttpLoggingInterceptor.Logger logger = new HttpLoggingInterceptor.Logger(){
+        HttpLoggingInterceptor.Logger logger = new HttpLoggingInterceptor.Logger() {
             @Override
             public void log(String message) {
                 System.out.println(message);
@@ -38,6 +40,7 @@ public class ApiStore {
                 .addInterceptor(interceptor)
                 .addInterceptor(generateRequestHeads())
                 .addInterceptor(generateRequest())
+                .addInterceptor(receiveCookie())
                 .cookieJar(generateCookie());
         //设置超市时间
         setRequestTime(builder);
@@ -74,19 +77,20 @@ public class ApiStore {
 
     /**
      * 通用请求头Head
-     *
+     * <p>
      * okhttp的拦截器利用chain 获取Resquest 利用Request 设置新的Request，利用Request获取Response
      * 在这个过程中完成了，对请求的设置，拦截操作
      */
     private Interceptor generateRequestHeads() {
-        Interceptor requestHead = new Interceptor(){
+        Interceptor requestHead = new Interceptor() {
             @Override
             public Response intercept(Chain chain) throws IOException {
                 Request request = chain.request()
                         .newBuilder()
 //                        .header("X-Requested-With","com.qihoo.appstore")
                         .header("X-Requested-With", "XMLHttpRequest")
-                        .header("User-Agent","Mozilla/5.0 (Linux; Android 6.0.1; MI NOTE LTE Build/MMB29M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/51.0.2704.81 Mobile Safari/537.36;360appstore")
+//                        .header("User-Agent","Mozilla/5.0 (Linux; Android 6.0.1; MI NOTE LTE Build/MMB29M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/51.0.2704.81 Mobile Safari/537.36;360appstore")
+                        .header("User-Agent", "Mozilla/5.0 (Linux; Android 6.0.1; MI NOTE LTE Build/MMB29M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/51.0.2704.81 Mobile Safari/537.36")
                         .build();
                 Response response = chain.proceed(request);
                 return response;
@@ -99,7 +103,7 @@ public class ApiStore {
      * 设置通用请求参数
      */
     private Interceptor generateRequest() {
-        Interceptor requestHead = new Interceptor(){
+        Interceptor requestHead = new Interceptor() {
             @Override
             public Response intercept(Chain chain) throws IOException {
                 //首先重建HttpUrl，添加通用参数
@@ -122,6 +126,7 @@ public class ApiStore {
 
     /**
      * 设置超时时间
+     *
      * @param builder
      */
     private void setRequestTime(OkHttpClient.Builder builder) {
@@ -133,10 +138,37 @@ public class ApiStore {
     /**
      * 设置cookie的非持久化
      */
-    private CookieJar generateCookie () {
+    private CookieJar generateCookie() {
         CookieManager cookieManager = new CookieManager();
         cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_NONE);
         JavaNetCookieJar javaNetCookieJar = new JavaNetCookieJar(cookieManager);
         return javaNetCookieJar;
+    }
+
+    /**
+     * 自定义获取Cookie拦截器
+     */
+    private Interceptor receiveCookie() {
+        return new Interceptor() {
+            @Override
+            public Response intercept(Chain chain) throws IOException {
+                Request request = chain.request();
+                Response respose = chain.proceed(request);
+                if ("GET".equals(request.method())) {
+                    if (!respose.headers("Set-Cookie").isEmpty()) {
+                        Observable.from(respose.headers("Set-Cookie"))
+                                .map(v -> {
+                                    cookie = "";
+                                    return v.split(";")[0];
+                                }).subscribe(v -> {
+                            cookie += v + ";";
+                        });
+                    }
+                } else {
+                    request = request.newBuilder().addHeader("Cookie", ApiStore.this.cookie).build();
+                }
+                return chain.proceed(request);
+            }
+        };
     }
 }
