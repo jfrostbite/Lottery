@@ -8,8 +8,8 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import rx.Observable;
 
 import java.io.IOException;
-import java.net.*;
-import java.time.Instant;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -34,7 +34,7 @@ public class ApiStore {
             }
         };
         HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor(logger);
-        interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+        interceptor.setLevel(HttpLoggingInterceptor.Level.NONE);
 
         OkHttpClient.Builder builder = new OkHttpClient.Builder()
                 .addInterceptor(interceptor)
@@ -110,7 +110,7 @@ public class ApiStore {
                 HttpUrl httpUrl = chain.request()
                         .url()
                         .newBuilder()
-                        .addQueryParameter(Constant.V, String.valueOf(Instant.now().getEpochSecond()))
+//                        .addQueryParameter(Constant.V, String.valueOf(Instant.now().getEpochSecond()))
                         .build();
                 //重建Request，添加重建后的HttpUrl
                 Request request = chain.request()

@@ -82,11 +82,12 @@ public class Controller implements OnDrawListener {
         if (draw != null) {
             draw.setOnDrawListener(this);
             Map<String, String> requestMap = getRequestMap(draw);
+            requestMap.put("phone",tf_tel.getText().trim());
+            requestMap.put("name",tf_name.getText().trim());
             draw.preDraw(requestMap);
+            requestMap = getRequestMap(draw);
             String code = apiStore.cookie.split(";")[0].split("=")[1];
             requestMap.put("code",code);
-            requestMap.put("channel","xmthank");
-            requestMap.put("versionCode","2.0.1");
             draw.draw(requestMap);
         } else {
             setContent(draw.getIndex(), "抽奖程序未启动...");

@@ -54,12 +54,19 @@ public interface ApiService {
      * 宝宝故事抽奖主页
      */
     @GET("http://m.babystory365.com/activity/thank_draw.htm?code=&versionCode=2.0.1&channel=xmthank")
-    Observable preDraw();
+    Observable<String> preDraw();
 
     /**
      * 宝宝故事抽奖
      */
     @FormUrlEncoded
     @POST("http://m.babystory365.com/activity/thank_draw.htm?actionMethod=doDraw")
-    Observable doDraw(@FieldMap Map<String,String> map);
+    Observable<PocoBean> doDraw(@FieldMap Map<String,String> map);
+
+    /**
+     * 宝宝故事抽奖提交
+     */
+    @FormUrlEncoded
+    @POST("http://m.babystory365.com/activity/thank_draw.htm?actionMethod=submit")
+    Observable<PocoBean> submit(@FieldMap Map<String,String> map);
 }
