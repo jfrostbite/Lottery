@@ -22,7 +22,7 @@ public class ApiStore {
     private static String drawer;
     private final OkHttpClient okHttpClient;
     private final Retrofit retrofit;
-    public String cookie;
+    public String cookie = "PHPSESSID=cn46udosre6c8s9ppmhm83mot5; netalliance_id=1.2.15161.; muuid=1487596739429_2635; mucid=15161.0011; muctm=; muctmr=eyJtaV91X3QiOiIyIiwibWlfdV92IjoiIiwibWlfdV9yIjoiaHR0cDovL3htdC53d3cubWkuY29tL2luZGV4LnBocD9pZD05MzgwXHUwMDI2c2NlbmU9MzciLCJtaV91X2QiOiIiLCJtaV90aWQiOiIifQ**; mutid=15161.00115XQB4efTrZfKhO677a4f170220211800; Hm_lvt_4982d57ea12df95a2b24715fb6440726=1487596740; Hm_lpvt_4982d57ea12df95a2b24715fb6440726=1487596740; lastsource=a.union.mi.com; mstz=||1816046639.1||http%3A%2F%2Fa.union.mi.com%2Fmua%3Fc%3D15161.0011|; mstuid=1487596740551_4790; xm_vistor=1487596740551_4790_1487596740554-1487596740554";
 
     private ApiStore() {
 
@@ -34,14 +34,14 @@ public class ApiStore {
             }
         };
         HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor(logger);
-        interceptor.setLevel(HttpLoggingInterceptor.Level.NONE);
+        interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
 
         OkHttpClient.Builder builder = new OkHttpClient.Builder()
                 .addInterceptor(interceptor)
-                .addInterceptor(generateRequestHeads())
-                .addInterceptor(generateRequest())
-                .addInterceptor(receiveCookie())
-                .cookieJar(generateCookie());
+                .addInterceptor(generateRequestHeads());
+//                .addInterceptor(generateRequest());
+//                .addInterceptor(receiveCookie());
+//                .cookieJar(generateCookie());
         //设置超市时间
         setRequestTime(builder);
 
@@ -89,8 +89,9 @@ public class ApiStore {
                         .newBuilder()
 //                        .header("X-Requested-With","com.qihoo.appstore")
                         .header("X-Requested-With", "XMLHttpRequest")
-//                        .header("User-Agent","Mozilla/5.0 (Linux; Android 6.0.1; MI NOTE LTE Build/MMB29M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/51.0.2704.81 Mobile Safari/537.36;360appstore")
-                        .header("User-Agent", "Mozilla/5.0 (Linux; Android 6.0.1; MI NOTE LTE Build/MMB29M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/51.0.2704.81 Mobile Safari/537.36")
+//                        .header("User-Agent","Mozilla/5.0 (Linux; Android 6.0.1; MI5) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/51.0.2704.81 Mobile Safari/537.36;360appstore")
+                        .header("User-Agent", "Mozilla/5.0 (Linux; Android 7.1.1; MI NOTE LTE Build/NMF26F; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/53.0.2785.49 Mobile MQQBrowser/6.2 TBS/043024 Safari/537.36 MicroMessenger/6.5.4.1000 NetType/WIFI Language/zh_CN")
+                        .header("Cookie", cookie)
                         .build();
                 Response response = chain.proceed(request);
                 return response;
@@ -111,6 +112,7 @@ public class ApiStore {
                         .url()
                         .newBuilder()
 //                        .addQueryParameter(Constant.V, String.valueOf(Instant.now().getEpochSecond()))
+                        .addQueryParameter(Constant.DOWN_, String.valueOf(System.currentTimeMillis()))
                         .build();
                 //重建Request，添加重建后的HttpUrl
                 Request request = chain.request()
@@ -149,26 +151,23 @@ public class ApiStore {
      * 自定义获取Cookie拦截器
      */
     private Interceptor receiveCookie() {
-        return new Interceptor() {
-            @Override
-            public Response intercept(Chain chain) throws IOException {
-                Request request = chain.request();
-                Response respose = chain.proceed(request);
-                if ("GET".equals(request.method())) {
-                    if (!respose.headers("Set-Cookie").isEmpty()) {
-                        Observable.from(respose.headers("Set-Cookie"))
-                                .map(v -> {
-                                    cookie = "";
-                                    return v.split(";")[0];
-                                }).subscribe(v -> {
-                            cookie += v + ";";
-                        });
-                    }
-                } else {
-                    request = request.newBuilder().addHeader("Cookie", ApiStore.this.cookie).build();
+        return chain -> {
+            Request request = chain.request();
+            Response respose = chain.proceed(request);
+            if ("GET".equals(request.method())) {
+                if (!respose.headers("Set-Cookie").isEmpty()) {
+                    Observable.from(respose.headers("Set-Cookie"))
+                            .map(v -> {
+                                cookie = "";
+                                return v.split(";")[0];
+                            }).subscribe(v -> {
+                        cookie += v + ";";
+                    });
                 }
-                return chain.proceed(request);
+            } else {
             }
+            request = request.newBuilder().addHeader("Cookie", ApiStore.this.cookie).build();
+            return chain.proceed(request);
         };
     }
 }

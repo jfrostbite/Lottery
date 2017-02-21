@@ -1,6 +1,7 @@
 package com.kevin.lottery.draws;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.kevin.lottery.entity.BaseBean;
 import com.kevin.lottery.entity.LotteryBean;
 import com.kevin.lottery.entity.RequestBean;
@@ -9,8 +10,10 @@ import com.kevin.lottery.http.ApiSubscriber;
 import com.kevin.lottery.http.Constant;
 import com.kevin.lottery.utils.MD5Utils;
 import com.kevin.utils.RandomUtils;
+import okhttp3.ResponseBody;
 import rx.Observable;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
 import java.util.TreeMap;
@@ -72,9 +75,16 @@ public class Draw_360 implements Draw{
      * @param requestMap
      */
     private void addChance(Map<String, String> requestMap) {
-        Observable<BaseBean<String>> observable = apiService.addChance(requestMap);
-        observable.map((bean) -> {
-                    String msg = "增加抽奖机会失败！>>> ";
+        Observable<ResponseBody> observable = apiService.addChance(requestMap);
+        observable.map((str) -> {
+            BaseBean<String> bean = null;
+            try {
+                bean = new Gson().fromJson(str.string(), new TypeToken<BaseBean<String>>() {
+                }.getType());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            String msg = "增加抽奖机会失败！>>> ";
                     if (Constant.STATUS_OK.equals(bean.status)) {
                         msg = "增加抽奖机会成功！机会+" + bean.data;
                     } else {
@@ -114,9 +124,16 @@ public class Draw_360 implements Draw{
     private void getChance(Map<String, String> requestMap) {
         requestMap.remove(Constant.TYPE);
         requestMap.remove(Constant.VERIFY);
-        Observable<BaseBean<String>> observable = apiService.getChance(requestMap);
-        observable.map(bean -> {
-                    return bean.data;
+        Observable<ResponseBody> observable = apiService.getChance(requestMap);
+        observable.map(str -> {
+            BaseBean<String> bean = null;
+            try {
+                bean = new Gson().fromJson(str.string(), new TypeToken<BaseBean<String>>() {
+                }.getType());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return bean.data;
                 })
                 .subscribe(new ApiSubscriber<String>() {
 
@@ -158,8 +175,18 @@ public class Draw_360 implements Draw{
         }
         String mid = requestMap.get(Constant.MID);
         requestMap.put(Constant.DOWN__, String.valueOf(Instant.now().getEpochSecond()));
+        requestMap.put(Constant.JSCALL, "jQuery2240" + RandomUtils.generateNumString(17) + "_" + (System.currentTimeMillis() + 223));
         apiService.startDraw(requestMap)
-                .map(bean -> {
+                .map(res -> {
+                    String str = null;
+                    try {
+                        str = res.string();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    str = str.substring(str.indexOf("(")+1,str.indexOf(")"));
+                    BaseBean<String> bean = new Gson().fromJson(str, new TypeToken<BaseBean<String>>() {
+                    }.getType());
                     LotteryBean lotteryBean = null;
                     if (Constant.STATUS_OK.equals(bean.status)) {
                         lotteryBean = new Gson().fromJson(bean.data, LotteryBean.class);
@@ -176,6 +203,7 @@ public class Draw_360 implements Draw{
                     public void onSuccess(LotteryBean lotteryBean) {
                         if (lotteryBean.hasPrize) {
                             if (mListener!=null) {
+                                mListener.saveLog(lotteryBean.drawmark, mid +"\n");
                                 mListener.onDraw(index,";恭喜获得：" + lotteryBean.drawmark);
                                 mListener.alertDialog(lotteryBean.drawmark,mid);
                             }

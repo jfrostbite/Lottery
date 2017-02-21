@@ -23,6 +23,7 @@ public class Constant {
     public static final String VERIFY = "verify";
     public static final String TYPE = "type";
     public static final String DOWN_ = "_";
+    public static final String JSCALL = "jscallback";
     public static final String DOWN__ = "__";
     public static final String V = "v";
 

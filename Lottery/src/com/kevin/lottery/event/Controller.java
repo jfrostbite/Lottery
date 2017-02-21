@@ -104,6 +104,15 @@ public class Controller implements OnDrawListener {
     }
 
 
+    private void start(Draw_Mi draw) {
+        if (draw != null) {
+            draw.setOnDrawListener(this);
+            draw.preDraw(getRequestMap(draw));
+        } else {
+            setContent(draw.getIndex(), "抽奖程序未启动...");
+        }
+    }
+
     /**
      * 布局加载玩会自动执行
      */
@@ -212,6 +221,10 @@ public class Controller implements OnDrawListener {
         return draw.generateMap();
     }
 
+    private synchronized Map<String,String> getRequestMap(Draw_Mi draw){
+        return draw.generateMap();
+    }
+
     private void showDialog(String drawmark) {
         Platform.runLater(() -> {
             btn_start.setText("开始");
@@ -267,7 +280,8 @@ public class Controller implements OnDrawListener {
 //            Draw_360 draw_360 = new Draw_360(apiService);
 //            draw_360.setIndex(index);
 //            Draw_Poco draw = new Draw_Poco(index, apiService);
-            Draw_Baby draw = new Draw_Baby(index, apiService);
+//            Draw_Baby draw = new Draw_Baby(index, apiService);
+            Draw_Mi draw = new Draw_Mi(index, apiService);
             do {
                 if (!drawing) {
                     drawing = false;
@@ -275,7 +289,7 @@ public class Controller implements OnDrawListener {
                 }
                 start(draw);
 //                start(draw_360);
-                Thread.sleep(100);
+                Thread.sleep(1000);
             } while (drawing);
             return null;
         }

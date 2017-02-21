@@ -1,7 +1,9 @@
 package com.kevin.lottery.http;
 
 import com.kevin.lottery.entity.BaseBean;
+import com.kevin.lottery.entity.MiBean;
 import com.kevin.lottery.entity.PocoBean;
+import okhttp3.ResponseBody;
 import retrofit2.http.*;
 import rx.Observable;
 
@@ -16,19 +18,19 @@ public interface ApiService {
      * 增加抽奖机会
      */
     @GET(Constant.QUERY+"/outdealtimes")
-    Observable<BaseBean<String>> addChance(@QueryMap Map<String,String> map);
+    Observable<ResponseBody> addChance(@QueryMap Map<String,String> map);
 
     /**
      * 获取抽奖机会
      */
     @GET(Constant.QUERY+"/getcurtimes")
-    Observable<BaseBean<String>> getChance(@QueryMap Map<String, String> map);
+    Observable<ResponseBody> getChance(@QueryMap Map<String, String> map);
 
     /**
      * 抽奖
      */
     @GET(Constant.QUERY+"/draw")
-    Observable<BaseBean<String>> startDraw(@QueryMap Map<String,String> map);
+    Observable<ResponseBody> startDraw(@QueryMap Map<String,String> map);
 
     /**
      * 提交获奖信息
@@ -60,13 +62,26 @@ public interface ApiService {
      * 宝宝故事抽奖
      */
     @FormUrlEncoded
-    @POST("http://m.babystory365.com/activity/thank_draw.htm?actionMethod=doDraw")
-    Observable<PocoBean> doDraw(@FieldMap Map<String,String> map);
+//    @POST("http://m.babystory365.com/activity/thank_draw.htm?actionMethod=doDraw")
+    @POST("http://xmt.www.mi.com/index.php?id=9380&do=draw")
+    Observable<MiBean> doDraw(@FieldMap Map<String,String> map);
+
+    /**
+     * 小米中奖信息
+     * @return
+     */
+    @FormUrlEncoded
+    @POST("http://xmt.www.mi.com/index.php?id=9380&do=start")
+    Observable<MiBean> preDraw1(@FieldMap Map<String,String> map);
 
     /**
      * 宝宝故事抽奖提交
      */
     @FormUrlEncoded
+//    @POST("http://m.babystory365.com/activity/thank_draw.htm?actionMethod=submit")
     @POST("http://m.babystory365.com/activity/thank_draw.htm?actionMethod=submit")
-    Observable<PocoBean> submit(@FieldMap Map<String,String> map);
+    Observable<MiBean> submit(@FieldMap Map<String,String> map);
+
+
+
 }

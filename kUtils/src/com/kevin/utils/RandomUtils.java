@@ -91,4 +91,12 @@ public class RandomUtils {
         }
         return sb.toString();
     }
+
+    /**
+     * 获取随机数
+     */
+    public static String generateNum(int min, int max){
+        int i = random.nextInt(max) % (max - min + 1) + min;
+        return String.valueOf(i);
+    }
 }
