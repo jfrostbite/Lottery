@@ -1,6 +1,7 @@
 package com.kevin.lottery.http;
 
 import com.kevin.lottery.entity.BaseBean;
+import com.kevin.lottery.entity.LotteryBean;
 import com.kevin.lottery.entity.MiBean;
 import com.kevin.lottery.entity.PocoBean;
 import okhttp3.ResponseBody;
@@ -82,6 +83,11 @@ public interface ApiService {
     @POST("http://m.babystory365.com/activity/thank_draw.htm?actionMethod=submit")
     Observable<MiBean> submit(@FieldMap Map<String,String> map);
 
+    @FormUrlEncoded
+    @POST("http://usa.51talk.com/activity/give")
+    Observable<BaseBean<LotteryBean>> give(@Header("Cookie") String cookie, @Field("openid") String openid);
 
-
+    @FormUrlEncoded
+    @POST("http://usa.51talk.com/Ajax/getAward")
+    Observable<BaseBean<LotteryBean>> getAward(@Header("Cookie") String cookie);
 }

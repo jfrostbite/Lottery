@@ -10,7 +10,7 @@ public interface Draw<T> {
     /**
      * 抽奖准备
      */
-    Draw preDraw(Map requestMap);
+    Draw preDraw(Map<T,T> requestMap);
 
     /**
      * 抽奖

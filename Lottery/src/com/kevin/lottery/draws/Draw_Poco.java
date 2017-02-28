@@ -100,7 +100,7 @@ public class Draw_Poco implements Draw {
 
                     @Override
                     public void onFinish() {
-
+                        System.out.println();
                     }
                 });
         return this;
