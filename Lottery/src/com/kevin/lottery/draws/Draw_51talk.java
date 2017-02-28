@@ -65,7 +65,7 @@ public class Draw_51talk implements Draw<String> {
                 mListener.onDraw(mIndex,"抽奖："+lotteryBeanBaseBean.info+"["+lotteryBeanBaseBean.data.angle+"]");
                 switch (lotteryBeanBaseBean.data.angle) {
                     case "2":
-                        mListener.saveLog(lotteryBeanBaseBean);
+                        mListener.saveLog(lotteryBeanBaseBean.);
                         break;
                     case "4":
                     case "6":
