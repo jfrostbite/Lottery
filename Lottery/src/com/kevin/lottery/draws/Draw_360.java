@@ -6,15 +6,20 @@ import com.kevin.lottery.entity.BaseBean;
 import com.kevin.lottery.entity.LotteryBean;
 import com.kevin.lottery.entity.RequestBean;
 import com.kevin.lottery.http.ApiService;
+import com.kevin.lottery.http.ApiStore;
 import com.kevin.lottery.http.ApiSubscriber;
 import com.kevin.lottery.http.Constant;
 import com.kevin.lottery.utils.MD5Utils;
 import com.kevin.utils.RandomUtils;
+import com.kevin.utils.TextUtils;
 import okhttp3.ResponseBody;
 import rx.Observable;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.time.Instant;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -28,6 +33,7 @@ public class Draw_360 implements Draw{
     private RequestBean requestBean;
     private Map<String,String> map;
     private String type;
+    private ApiStore mApiStore;
 
     public int getIndex() {
         return index;
@@ -150,6 +156,7 @@ public class Draw_360 implements Draw{
                     @Override
                     public void onFailure(int code, String msg) {
                         if (mListener!=null) {
+                            setProxy(true);
                             mListener.onDraw(index,"错误：" + code + "；" + msg);
                         }
                     }
@@ -158,6 +165,7 @@ public class Draw_360 implements Draw{
                     public void onFinish() {
                         for (int i = 0; i < chance; i++) {
                             startDraw(requestMap);
+                            break;
                         }
                     }
                 });
@@ -175,7 +183,7 @@ public class Draw_360 implements Draw{
         }
         String mid = requestMap.get(Constant.MID);
         requestMap.put(Constant.DOWN__, String.valueOf(Instant.now().getEpochSecond()));
-        requestMap.put(Constant.JSCALL, "jQuery2240" + RandomUtils.generateNumString(17) + "_" + (System.currentTimeMillis() + 223));
+        requestMap.put(Constant.JSCALL, "jsonp4");
         apiService.startDraw(requestMap)
                 .map(res -> {
                     String str = null;
@@ -188,13 +196,14 @@ public class Draw_360 implements Draw{
                     BaseBean<String> bean = new Gson().fromJson(str, new TypeToken<BaseBean<String>>() {
                     }.getType());
                     LotteryBean lotteryBean = null;
-                    if (Constant.STATUS_OK.equals(bean.status)) {
+                    if (Constant.STATUS_OK.equals(bean.status) || !"error".equals(bean.status)) {
                         lotteryBean = new Gson().fromJson(bean.data, LotteryBean.class);
                         lotteryBean.hasPrize = true;
                     } else {
                         lotteryBean = new LotteryBean();
-                        lotteryBean.drawmark = bean.data;
+                        lotteryBean.drawmark = bean.data+"--"+bean.msg;
                         lotteryBean.hasPrize = false;
+                        lotteryBean.address = !TextUtils.isEmpty(bean.msg);
                     }
                     return lotteryBean;
                 })
@@ -205,10 +214,11 @@ public class Draw_360 implements Draw{
                             if (mListener!=null) {
                                 mListener.saveLog(lotteryBean.drawmark, mid +"\n");
                                 mListener.onDraw(index,";恭喜获得：" + lotteryBean.drawmark);
-                                mListener.alertDialog(lotteryBean.drawmark,mid);
+//                                mListener.alertDialog(lotteryBean.drawmark,mid);
                             }
                         } else {
                             if (mListener!=null) {
+                                setProxy(lotteryBean.address);
                                 mListener.onDraw(index,"很遗憾，未中奖！>>> " +lotteryBean.drawmark);
                             }
                         }
@@ -217,6 +227,7 @@ public class Draw_360 implements Draw{
                     @Override
                     public void onFailure(int code, String msg) {
                         if (mListener!=null) {
+                            setProxy(true);
                             mListener.onDraw(index,msg);
                         }
 
@@ -227,6 +238,29 @@ public class Draw_360 implements Draw{
 
                     }
                 });
+    }
+
+    private void setProxy(boolean address) {
+        if (address) {
+            if (mListener != null) {
+                mListener.onDraw(index,"黑地址");
+            }
+            Iterator<Map.Entry<String, Integer>> iterator = Constant.ips.entrySet().iterator();
+            if (iterator.hasNext()) {
+                Map.Entry<String, Integer> next = iterator.next();
+                InetSocketAddress isa = new InetSocketAddress(next.getKey(), next.getValue());
+                boolean unresolved = isa.isUnresolved();
+                if (unresolved) {
+                    if (mListener != null) {
+                        mListener.onDraw(index,"代理IP无效");
+                    }
+                    return;
+                }
+                mApiStore.setProxy(new Proxy(Proxy.Type.HTTP,isa));
+                apiService = mApiStore.getService(ApiService.class);
+                iterator.remove();
+            }
+        }
     }
 
 
@@ -254,7 +288,7 @@ public class Draw_360 implements Draw{
         requestBean.type = type;
         requestBean.verify = MD5Utils.md5(verifyCode + requestBean.mid);
         map.put(Constant.ACTIVE, requestBean.active);
-//        map.put(Constant.DOWN_, requestBean.down_);
+        map.put(Constant.DOWN_, requestBean.down_);
         map.put(Constant.QID, requestBean.mid);
         if (isAdd) {
             map.put(Constant.TYPE, requestBean.type);
@@ -265,5 +299,10 @@ public class Draw_360 implements Draw{
 
     public void setType(String type) {
         this.type = type;
+    }
+
+    public void setApi(ApiStore apiStore) {
+
+        mApiStore = apiStore;
     }
 }

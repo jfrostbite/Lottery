@@ -5,12 +5,12 @@ import java.util.Map;
 /**
  * Created by kevin on 2016/10/16.
  */
-public interface Draw<T> {
+public interface Draw {
 
     /**
      * 抽奖准备
      */
-    Draw preDraw(Map<T,T> requestMap);
+    Draw preDraw(Map requestMap);
 
     /**
      * 抽奖

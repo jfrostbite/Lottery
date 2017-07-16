@@ -12,6 +12,6 @@
     <orderEntry type="library" name="com.squareup.okhttp3:logging-interceptor:3.4.1" level="project" />
     <orderEntry type="module" module-name="kUtils" />
     <orderEntry type="library" name="com.squareup.okhttp3:okhttp-urlconnection:3.4.1" level="project" />
-    <orderEntry type="library" name="com.squareup.retrofit2:adapter-rxjava:2.0.2" level="project" />
+    <orderEntry type="library" name="com.squareup.retrofit2:adapter-rxjava:2.1.0" level="project" />
   </component>
 </module>

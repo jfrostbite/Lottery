@@ -17,7 +17,7 @@ public class TextUtils {
      * @return
      */
     public static boolean isEmpty(String string) {
-        return string == null || "".equals(string);
+        return string == null || "".equals(string) || "null".equals(string);
     }
 
     /**

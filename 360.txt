@@ -1,1 +1,1 @@
-[{"activityId":"5b8507","verifyCode":"TUrnTaBlE7b85076","prizeName":""}]
+[{"activityId":"bf39d3","verifyCode":"TUrnTaBlE3f39d36","prizeName":""}]

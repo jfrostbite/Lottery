@@ -1,14 +1,17 @@
 package com.kevin.lottery.event;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.TypeAdapter;
 import com.google.gson.reflect.TypeToken;
-import com.kevin.lottery.draws.*;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+import com.kevin.lottery.draws.Draw_360;
+import com.kevin.lottery.draws.OnDrawListener;
 import com.kevin.lottery.entity.DrawBean;
 import com.kevin.lottery.helper.ThreadPoolHelper;
 import com.kevin.lottery.http.ApiService;
 import com.kevin.lottery.http.ApiStore;
-import com.kevin.lottery.http.Constant;
-import com.kevin.lottery.utils.GsonUtils;
 import com.kevin.utils.TextUtils;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -19,11 +22,11 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -57,63 +60,30 @@ public class Controller implements OnDrawListener {
         if (!drawing) {
 
             for (int i = 0; i < drawBeen.size(); i++) {
+//                Thread thread = new Thread();
+//                thread.setDaemon(true);
+//                thread.start();
                 DrawTask task = new DrawTask(i);
                 ThreadPoolHelper.newInstace().execute(task);
             }
+//                service.start();
+        } else {
+
         }
         btn_start.setText(drawing ? "开始" : "停止");
         drawing = !drawing;
 
     }
 
-    private void start(Draw_Poco draw) {
-        if (draw != null) {
-            draw.setOnDrawListener(this);
-            Map<String, String> requestMap = getRequestMap(draw);
-            requestMap.put("uname",tf_name.getText().trim());
-            requestMap.put("mobile",tf_tel.getText().trim());
-            requestMap.put("addr",tf_address.getText().trim());
-            draw.preDraw(requestMap).draw();
+    private void start(Draw_360 draw_360) {
+        if (draw_360 != null) {
+            draw_360.setOnDrawListener(this);
+            draw_360.preDraw(getRequestMap(draw_360.getIndex()));
         } else {
-            setContent(draw.getIndex(), "抽奖程序未启动...");
+            setContent(draw_360.getIndex(), "抽奖程序未启动...");
         }
     }
 
-    private void start(Draw_Baby draw) {
-        if (draw != null) {
-            draw.setOnDrawListener(this);
-            Map<String, String> requestMap = getRequestMap(draw);
-            requestMap.put("phone",tf_tel.getText().trim());
-            requestMap.put("name",tf_name.getText().trim());
-            draw.preDraw(requestMap);
-            requestMap = getRequestMap(draw);
-            String code = apiStore.cookie.split(";")[0].split("=")[1];
-            requestMap.put("code",code);
-            draw.draw(requestMap);
-        } else {
-            setContent(draw.getIndex(), "抽奖程序未启动...");
-        }
-    }
-
-    private void start(Draw_360 draw) {
-        if (draw != null) {
-            draw.setOnDrawListener(this);
-            draw.setApi(apiStore);
-            draw.preDraw(getRequestMap(draw));
-        } else {
-            setContent(draw.getIndex(), "抽奖程序未启动...");
-        }
-    }
-
-
-    private void start(Draw_Mi draw) {
-        if (draw != null) {
-            draw.setOnDrawListener(this);
-            draw.preDraw(getRequestMap(draw));
-        } else {
-            setContent(draw.getIndex(), "抽奖程序未启动...");
-        }
-    }
 
     /**
      * 布局加载玩会自动执行
@@ -125,27 +95,6 @@ public class Controller implements OnDrawListener {
         init();
         initView();
         initData();
-        ip();
-    }
-
-    private void ip() {
-        try {
-            File file = new File(System.getProperty("user.dir"), "ip");
-            if (file.exists()) {
-                BufferedReader br = new BufferedReader(new FileReader(file));
-                String line = null;
-                while((line = br.readLine()) != null){
-                    line = line.trim();
-                    String[] split = line.split(":");
-                    Constant.ips.put(split[0],Integer.parseInt(split[1]));
-                }
-                System.out.println("ip加载完毕");
-            }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     private void init() {
@@ -161,7 +110,7 @@ public class Controller implements OnDrawListener {
     private void initData() {
         List<DrawBean> tmp = null;
         if (!TextUtils.isEmpty(datas)) {
-            Gson gson = GsonUtils.getGson();
+            Gson gson = getGson();
             tmp = gson.fromJson(datas, new TypeToken<ObservableList<DrawBean>>() {
             }.getType());
         } else {
@@ -199,31 +148,28 @@ public class Controller implements OnDrawListener {
 
         btn_start.setOnAction(e -> {
             startLottery();
+//            test();
         });
-
         btn_submit.setOnAction(e -> {
-            TreeMap<String, String> map = new TreeMap<>();
-            map.put("ch", "interphoto_201612");
-            map.put("uname",tf_name.getText().trim());
-            map.put("mobile",tf_tel.getText().trim());
-            map.put("addr",tf_address.getText().trim());
-            map.put("winkey","09e3fc71a2bddefb1ce8a1efdf7fd2cf");
-            map.put("record","8789");
-            map.put("key","c6dc14bacad7cd9b828ac97ecde3d983");
-            Draw_Poco poco = new Draw_Poco(0, apiService);
-            poco.setOnDrawListener(this);
-            poco.preDraw(map).submit(map);
         });
-
         btn_add.setOnAction(e -> {
             if (drawBeen != null) {
                 boolean add = drawBeen.add(new DrawBean(tf_active.getText(), tf_code.getText(), ""));
-                String str = GsonUtils.getGson().toJson(drawBeen);
+                String str = getGson().toJson(drawBeen);
                 if (add) {
                     TextUtils.string2File(str, "360.txt", false);
                 }
             }
+
+//            ThreadPoolHelper.newInstace().getTaskInfo();
+//            pool.submit(new DrawTask(2));
+//            drawing = true;
         });
+    }
+
+    private void test() {
+        pool.submit(new DrawTask(1));
+        drawing = true;
     }
 
     /**
@@ -231,21 +177,9 @@ public class Controller implements OnDrawListener {
      *
      * @return
      */
-    private synchronized Map<String, String> getRequestMap(Draw_360 draw) {
-        draw.setType("6");
-        return draw.generateMap(drawBeen.get(draw.getIndex()).getActivityId(), drawBeen.get(draw.getIndex()).getVerifyCode(), true);
-    }
-
-    private synchronized Map<String, String> getRequestMap(Draw_Poco draw) {
-        return draw.generateMap();
-    }
-
-    private synchronized Map<String, String> getRequestMap(Draw_Baby draw) {
-        return draw.generateMap();
-    }
-
-    private synchronized Map<String,String> getRequestMap(Draw_Mi draw){
-        return draw.generateMap();
+    private synchronized Map<String, String> getRequestMap(int index) {
+        apiStore.setType("6");
+        return apiStore.generateMap(drawBeen.get(index).getActivityId(), drawBeen.get(index).getVerifyCode(), true);
     }
 
     private void showDialog(String drawmark) {
@@ -268,6 +202,7 @@ public class Controller implements OnDrawListener {
      */
     private void setContent(int index, String content) {
         Platform.runLater(() -> {
+//            ta_content.setText(TextUtils.getCurrentTime() + content + "\n");
             drawBeen.get(index).setContent(TextUtils.getCurrentTime() + content);
 //            System.out.println(content);
         });
@@ -279,14 +214,47 @@ public class Controller implements OnDrawListener {
     }
 
     @Override
-    public void alertDialog(String... str) {
-        drawing = false;
-        showDialog(str[0]);
+    public void alertDialog(String str) {
+        showDialog(str);
     }
 
-    @Override
-    public void saveLog(String... str) {
-        TextUtils.string2File(str[0] + "\n"+str[1]+"\n", "draw.txt", true);
+    /**
+     * 根据需求自定义gson解析器，用于解析ObservableList集合
+     *
+     * @return
+     */
+    private Gson getGson() {
+        return new GsonBuilder().registerTypeAdapter(DrawBean.class, new TypeAdapter<DrawBean>() {
+            @Override
+            public void write(JsonWriter jsonWriter, DrawBean drawBeen) throws IOException {
+                jsonWriter.beginObject()
+                        .name("activityId").value(drawBeen.getActivityId())
+                        .name("verifyCode").value(drawBeen.getVerifyCode())
+                        .name("prizeName").value(drawBeen.getContent())
+                        .endObject();
+            }
+
+            @Override
+            public DrawBean read(JsonReader jsonReader) throws IOException {
+                DrawBean drawBean = new DrawBean();
+                jsonReader.beginObject();
+                while (jsonReader.hasNext()) {
+                    switch (jsonReader.nextName()) {
+                        case "activityId":
+                            drawBean.setActivityId(jsonReader.nextString());
+                            break;
+                        case "verifyCode":
+                            drawBean.setVerifyCode(jsonReader.nextString());
+                            break;
+                        case "prizeName":
+                            drawBean.setContent(jsonReader.nextString());
+                            break;
+                    }
+                }
+                jsonReader.endObject();
+                return drawBean;
+            }
+        }).create();
     }
 
     class DrawTask extends Task<Void> {
@@ -302,17 +270,13 @@ public class Controller implements OnDrawListener {
         protected Void call() throws Exception {
             Draw_360 draw_360 = new Draw_360(apiService);
             draw_360.setIndex(index);
-//            Draw_Poco draw = new Draw_Poco(index, apiService);
-//            Draw_Baby draw = new Draw_Baby(index, apiService);
-//            Draw_Mi draw = new Draw_Mi(index, apiService);
             do {
-                if (!drawing) {
+                if (isCancelled()) {
                     drawing = false;
                     break;
                 }
-//                start(draw);
                 start(draw_360);
-                Thread.sleep(3000);
+                Thread.sleep(100);
             } while (drawing);
             return null;
         }

@@ -1,9 +1,9 @@
 package com.kevin.lottery.http;
 
 import com.kevin.lottery.entity.BaseBean;
-import com.kevin.lottery.entity.LotteryBean;
 import com.kevin.lottery.entity.MiBean;
 import com.kevin.lottery.entity.PocoBean;
+import com.kevin.lottery.entity.ShafaBean;
 import okhttp3.ResponseBody;
 import retrofit2.http.*;
 import rx.Observable;
@@ -32,6 +32,12 @@ public interface ApiService {
      */
     @GET(Constant.QUERY+"/draw")
     Observable<ResponseBody> startDraw(@QueryMap Map<String,String> map);
+
+    /**
+     * 提取代理
+     */
+    @GET("http://www.89ip.cn/apijk/?&tqsl=30&sxa=&sxb=&tta=&ports=&ktip=&cf=1")
+    Observable<ResponseBody> ip();
 
     /**
      * 提交获奖信息
@@ -83,11 +89,26 @@ public interface ApiService {
     @POST("http://m.babystory365.com/activity/thank_draw.htm?actionMethod=submit")
     Observable<MiBean> submit(@FieldMap Map<String,String> map);
 
+    /**
+     * 沙发管家新用户注册
+     */
     @FormUrlEncoded
-    @POST("http://usa.51talk.com/activity/give")
-    Observable<BaseBean<LotteryBean>> give(@Header("Cookie") String cookie, @Field("openid") String openid);
+    @POST(Constant.NOTE_NEW)
+    Observable<ShafaBean> node_new(@FieldMap Map<String,String> params);
 
+    /**
+     * 沙发管家用户信息获取
+     */
     @FormUrlEncoded
-    @POST("http://usa.51talk.com/Ajax/getAward")
-    Observable<BaseBean<LotteryBean>> getAward(@Header("Cookie") String cookie);
+    @POST(Constant.POINT_INFO)
+    Observable<ShafaBean> points_info(@FieldMap Map<String,String> map);
+
+    /**
+     * 沙发管家抽奖
+     */
+    @FormUrlEncoded
+    @POST(Constant.REWARD_LOTTERY)
+    Observable<ShafaBean> reward_lottery(@FieldMap Map<String,String> map);
+
+
 }

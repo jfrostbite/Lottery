@@ -35,7 +35,7 @@ public class ThreadPoolHelper {
     }
 
     private static class ThreadPoolHolder {
-        public static final ThreadPoolHelper INSTANCE = new ThreadPoolHelper();
+        static final ThreadPoolHelper INSTANCE = new ThreadPoolHelper();
     }
 
     /**

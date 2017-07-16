@@ -10,6 +10,8 @@ import rx.Observable;
 import java.io.IOException;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
+import java.net.Proxy;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -20,9 +22,11 @@ import java.util.concurrent.TimeUnit;
 public class ApiStore {
 
     private static String drawer;
-    private final OkHttpClient okHttpClient;
-    private final Retrofit retrofit;
-    public String cookie = "PHPSESSID=gh6i1qtfoubqk9foucff9fan11";
+    private final Retrofit.Builder mReBuilder;
+    private OkHttpClient okHttpClient;
+    private Retrofit retrofit;
+    public String cookie = "PHPSESSID=cn46udosre6c8s9ppmhm83mot5; netalliance_id=1.2.15161.; muuid=1487596739429_2635; mucid=15161.0011; muctm=; muctmr=eyJtaV91X3QiOiIyIiwibWlfdV92IjoiIiwibWlfdV9yIjoiaHR0cDovL3htdC53d3cubWkuY29tL2luZGV4LnBocD9pZD05MzgwXHUwMDI2c2NlbmU9MzciLCJtaV91X2QiOiIiLCJtaV90aWQiOiIifQ**; mutid=15161.00115XQB4efTrZfKhO677a4f170220211800; Hm_lvt_4982d57ea12df95a2b24715fb6440726=1487596740; Hm_lpvt_4982d57ea12df95a2b24715fb6440726=1487596740; lastsource=a.union.mi.com; mstz=||1816046639.1||http%3A%2F%2Fa.union.mi.com%2Fmua%3Fc%3D15161.0011|; mstuid=1487596740551_4790; xm_vistor=1487596740551_4790_1487596740554-1487596740554";
+    private OkHttpClient.Builder mBuilder;
 
     private ApiStore() {
 
@@ -33,26 +37,29 @@ public class ApiStore {
                 System.out.println(message);
             }
         };
-        HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor(logger);
-        interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(logger);
+        loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
 
-        OkHttpClient.Builder builder = new OkHttpClient.Builder()
-                .addInterceptor(interceptor)
+        mBuilder = new OkHttpClient.Builder()
+//                .proxy(new Proxy(Proxy.Type.HTTP,new InetSocketAddress("180.106.37.111", 8118)))
+                .addInterceptor(loggingInterceptor)
                 .addInterceptor(generateRequestHeads());
 //                .addInterceptor(generateRequest());
 //                .addInterceptor(receiveCookie());
 //                .cookieJar(generateCookie());
         //设置超市时间
-        setRequestTime(builder);
+        setRequestTime(mBuilder);
 
-        okHttpClient = builder.build();
+        okHttpClient = mBuilder.build();
 
         //配置Retrofit
-        retrofit = new Retrofit.Builder()
+        mReBuilder = new Retrofit.Builder()
                 .client(okHttpClient)
                 .baseUrl(Constant.HOST + drawer)
+//                .baseUrl(Constant.HOST)
                 .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
-                .addConverterFactory(GsonConverterFactory.create())
+                .addConverterFactory(GsonConverterFactory.create());
+        retrofit = mReBuilder
                 .build();
     }
 
@@ -62,6 +69,15 @@ public class ApiStore {
     public static ApiStore newInstance(String drawer) {
         ApiStore.drawer = drawer + "/";
         return ApiStoreHolder.INSTANCE;
+    }
+
+    /**
+     * 设置代理连接
+     */
+    public ApiStore setProxy(Proxy proxy){
+        okHttpClient = mBuilder.proxy(proxy).build();
+        retrofit = mReBuilder.client(okHttpClient).build();
+        return this;
     }
 
     private static class ApiStoreHolder {
@@ -82,22 +98,30 @@ public class ApiStore {
      * 在这个过程中完成了，对请求的设置，拦截操作
      */
     private Interceptor generateRequestHeads() {
-        Interceptor requestHead = new Interceptor() {
+        String model = Constant.MODEL_PHONE[new Random().nextInt(Constant.MODEL_PHONE.length - 1)];
+//        String ua = "Dalvik/2.1.0 (Linux; U; Android 6.0; "+model+" Build/MRA58K)";
+//        String ua = "Mozilla/5.0 (Linux; Android 4.4.2; HUAWEI GRA-CL10 Build/KOT49H) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/30.0.0.0 Mobile Safari/537.36;360appstore";
+        String ua = "Mozilla/5.0 (Linux; Android 4.4.2; HUAWEI GRA-CL10 Build/KOT49H) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/30.0.0.0 Mobile Safari/537.36,gameunion";
+        return new Interceptor() {
             @Override
             public Response intercept(Chain chain) throws IOException {
                 Request request = chain.request()
                         .newBuilder()
-//                        .header("X-Requested-With","com.qihoo.appstore")
-                        .header("X-Requested-With", "XMLHttpRequest")
+                        .header("X-Requested-With","com.qihoo.gameunion")
+//                        .header("X-Requested-With", "XMLHttpRequest")
+//                        .header("X-Device", model)
+//                        .header("X-VersionName", "5.0.4")
+//                        .header("X-VersionCode", "296")
+//                        .header("X-Channel", "webwww")
+//                        .header("X-MajorVer", "5")
 //                        .header("User-Agent","Mozilla/5.0 (Linux; Android 6.0.1; MI5) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/51.0.2704.81 Mobile Safari/537.36;360appstore")
-                        .header("User-Agent", "Mozilla/5.0 (Linux; Android 7.1.1; MI NOTE LTE Build/NMF26F; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/53.0.2785.49 Mobile MQQBrowser/6.2 TBS/043024 Safari/537.36 MicroMessenger/6.5.4.1000 NetType/WIFI Language/zh_CN")
-                        .header("Cookie", cookie)
+                        .header("User-Agent", ua)
+//                        .header("Cookie", cookie)
                         .build();
                 Response response = chain.proceed(request);
                 return response;
             }
         };
-        return requestHead;
     }
 
     /**
