@@ -18,7 +18,6 @@ import rx.Observable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
-import java.time.Instant;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
@@ -34,6 +33,7 @@ public class Draw_360 implements Draw{
     private Map<String,String> map;
     private String type;
     private ApiStore mApiStore;
+    private String deviceId;
 
     public int getIndex() {
         return index;
@@ -66,7 +66,8 @@ public class Draw_360 implements Draw{
 
     @Override
     public void submit(Map map) {
-
+        map.putAll(generateMap(requestBean.active, requestBean.verify, deviceId, false));
+        submitInfo(map);
     }
 
     @Override
@@ -85,7 +86,12 @@ public class Draw_360 implements Draw{
         observable.map((str) -> {
             BaseBean<String> bean = null;
             try {
-                bean = new Gson().fromJson(str.string(), new TypeToken<BaseBean<String>>() {
+                String string = str.string();
+                if (string.contains("jQuery")) {
+                    string = string.substring(string.indexOf("({") + 1, string.indexOf("})"));
+                    string = string + "}";
+                }
+                bean = new Gson().fromJson(string, new TypeToken<BaseBean<String>>() {
                 }.getType());
             } catch (IOException e) {
                 e.printStackTrace();
@@ -108,6 +114,7 @@ public class Draw_360 implements Draw{
 
                     @Override
                     public void onFailure(int code, String msg) {
+                        setProxy(true);
                         if (mListener!=null) {
                             mListener.onDraw(index,"错误：" + code + "；" + msg);
                         }
@@ -115,7 +122,7 @@ public class Draw_360 implements Draw{
 
                     @Override
                     public void onFinish() {
-                        getChance(requestMap);
+                        getChance(generateMap(requestBean.active, requestBean.verify, deviceId, false));
 
                     }
                 });
@@ -134,7 +141,12 @@ public class Draw_360 implements Draw{
         observable.map(str -> {
             BaseBean<String> bean = null;
             try {
-                bean = new Gson().fromJson(str.string(), new TypeToken<BaseBean<String>>() {
+                String string = str.string();
+                if (string.contains("jQuery")) {
+                    string = string.substring(string.indexOf("({") + 1, string.indexOf("})"));
+                    string = string + "}";
+                }
+                bean = new Gson().fromJson(string, new TypeToken<BaseBean<String>>() {
                 }.getType());
             } catch (IOException e) {
                 e.printStackTrace();
@@ -155,8 +167,8 @@ public class Draw_360 implements Draw{
 
                     @Override
                     public void onFailure(int code, String msg) {
+                        setProxy(true);
                         if (mListener!=null) {
-                            setProxy(true);
                             mListener.onDraw(index,"错误：" + code + "；" + msg);
                         }
                     }
@@ -164,7 +176,7 @@ public class Draw_360 implements Draw{
                     @Override
                     public void onFinish() {
                         for (int i = 0; i < chance; i++) {
-                            startDraw(requestMap);
+                            startDraw(generateMap(requestBean.active, requestBean.verify, deviceId, false));
                             break;
                         }
                     }
@@ -182,8 +194,6 @@ public class Draw_360 implements Draw{
             requestMap.put(Constant.MID, remove);
         }
         String mid = requestMap.get(Constant.MID);
-        requestMap.put(Constant.DOWN__, String.valueOf(Instant.now().getEpochSecond()));
-        requestMap.put(Constant.JSCALL, "jsonp4");
         apiService.startDraw(requestMap)
                 .map(res -> {
                     String str = null;
@@ -214,7 +224,7 @@ public class Draw_360 implements Draw{
                             if (mListener!=null) {
                                 mListener.saveLog(lotteryBean.drawmark, mid +"\n");
                                 mListener.onDraw(index,";恭喜获得：" + lotteryBean.drawmark);
-//                                mListener.alertDialog(lotteryBean.drawmark,mid);
+                                mListener.alertDialog(lotteryBean.drawmark,mid);
                             }
                         } else {
                             if (mListener!=null) {
@@ -226,8 +236,8 @@ public class Draw_360 implements Draw{
 
                     @Override
                     public void onFailure(int code, String msg) {
+                        setProxy(true);
                         if (mListener!=null) {
-                            setProxy(true);
                             mListener.onDraw(index,msg);
                         }
 
@@ -257,6 +267,7 @@ public class Draw_360 implements Draw{
                     return;
                 }
                 mApiStore.setProxy(new Proxy(Proxy.Type.HTTP,isa));
+                mListener.title(isa.toString());
                 apiService = mApiStore.getService(ApiService.class);
                 iterator.remove();
             }
@@ -267,29 +278,74 @@ public class Draw_360 implements Draw{
     /**
      * 提交信息逻辑
      */
-    private void submitInfo() {
+    private void submitInfo(Map<String, String> requestMap) {
+        String remove = requestMap.remove(Constant.QID);
+        if (remove != null) {
+            requestMap.put(Constant.MID, remove);
+        }
+        String mid = requestMap.get(Constant.MID);
+        requestMap.put(Constant.SENDTIME, "1");
+
+        apiService.sendInfo(requestMap)
+                .map(str -> {
+                    BaseBean<String> bean = null;
+                    try {
+                        String string = str.string();
+                        if (string.contains("jQuery")) {
+                            string = string.substring(string.indexOf("({"), string.indexOf("})"));
+                            string = "{" + string + "}";
+                        }
+                        bean = new Gson().fromJson(string, new TypeToken<BaseBean<String>>() {
+                        }.getType());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    return bean;
+                })
+                .subscribe(new ApiSubscriber<BaseBean<String>>() {
+                    @Override
+                    public void onSuccess(BaseBean<String> bean) {
+                        if (Constant.STATUS_OK.equals(bean.status) || "success".equals(bean.data)) {
+                            mListener.alertDialog("保存成功");
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(int code, String msg) {
+
+                    }
+
+                    @Override
+                    public void onFinish() {
+
+                    }
+                });
     }
 
     /**
      * 获取通用参数,需要活动信息固定参数
      */
-    public Map<String, String> generateMap(String active,String verifyCode, boolean isAdd) {
+    public Map<String, String> generateMap(String active, String verifyCode, String deviceId, boolean isAdd) {
+        this.deviceId = deviceId;
         if (map == null) {
             map = new TreeMap<>();
         } else {
             map.clear();
         }
-        requestBean.down_ = String.valueOf(System.currentTimeMillis());
-        requestBean.down__ = String.valueOf(System.currentTimeMillis() + 123);
+        long time = System.currentTimeMillis();
+        String jscb = "jQuery2240"+RandomUtils.generateNumString(17)+"_" + (time);
+        requestBean.down_ = String.valueOf(time + 2);
+        requestBean.down__ = String.valueOf(time + 1234);
         requestBean.active = active;
-        String deviceId = "86" + RandomUtils.generateNumString(13);
-        requestBean.qid = MD5Utils.md5(deviceId);
+        requestBean.qid = deviceId;
         requestBean.mid = requestBean.qid;
         requestBean.type = type;
         requestBean.verify = MD5Utils.md5(verifyCode + requestBean.mid);
         map.put(Constant.ACTIVE, requestBean.active);
         map.put(Constant.DOWN_, requestBean.down_);
-        map.put(Constant.QID, requestBean.mid);
+        map.put(Constant.DOWN__, requestBean.down__);
+        map.put(Constant.MID, requestBean.mid);
+        map.put(Constant.JSCALL, jscb);
         if (isAdd) {
             map.put(Constant.TYPE, requestBean.type);
             map.put(Constant.VERIFY, requestBean.verify);

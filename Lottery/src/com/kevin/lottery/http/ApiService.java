@@ -1,6 +1,5 @@
 package com.kevin.lottery.http;
 
-import com.kevin.lottery.entity.BaseBean;
 import com.kevin.lottery.entity.MiBean;
 import com.kevin.lottery.entity.PocoBean;
 import com.kevin.lottery.entity.ShafaBean;
@@ -43,7 +42,7 @@ public interface ApiService {
      * 提交获奖信息
      */
     @GET(Constant.QUERY+"/useraddress")
-    Observable<BaseBean<String>> sendInfo(@QueryMap Map<String, String> map);
+    Observable<ResponseBody> sendInfo(@QueryMap Map<String, String> map);
 
     /**
      * poco抽奖

@@ -10,6 +10,6 @@ public class RequestBean {
     public String down__;
     public RequestBean(){
         down_ = String.valueOf(System.currentTimeMillis());
-        down__ = String.valueOf(System.currentTimeMillis());
+        down__ = String.valueOf(System.currentTimeMillis() + 1234);
     }
 }

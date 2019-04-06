@@ -1,7 +1,6 @@
 package com.kevin.lottery.http;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.LinkedHashMap;
 
 /**
  * Created by kevin on 2016/10/6.
@@ -198,6 +197,13 @@ public class Constant {
     public static final String DOWN_ = "_";
     public static final String JSCALL = "jscallback";
     public static final String DOWN__ = "__";
+    public static final String ACCEPTER = "accepter";
+    public static final String PHONE = "phone";
+    public static final String ADDRESS = "address";
+    public static final String SENDTIME = "sendtime";
+
+
+
     public static final String V = "v";
 
     public static final String NOTE_NEW = "node/new";
@@ -206,6 +212,6 @@ public class Constant {
 
     public static final String STATUS_OK = "ok";
 
-    public static Map<String, Integer> ips = new HashMap<>();
+    public static LinkedHashMap<String, Integer> ips = new LinkedHashMap<>();
 }
 

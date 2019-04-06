@@ -1,8 +1,8 @@
 package com.kevin.lottery.http;
 
+import retrofit2.adapter.rxjava.HttpException;
 import rx.Subscriber;
 
-import javax.xml.ws.http.HTTPException;
 
 /**
  * Created by kevin on 2016/10/6.
@@ -17,9 +17,9 @@ public abstract class ApiSubscriber<T> extends Subscriber<T> {
 
     @Override
     public void onError(Throwable throwable) {
-        if (throwable instanceof HTTPException) {
-            HTTPException exception = (HTTPException) throwable;
-            int statusCode = exception.getStatusCode();
+        if (throwable instanceof HttpException) {
+            HttpException exception = (HttpException) throwable;
+            int statusCode = exception.code();
             String message = exception.getMessage();
             if (502 == statusCode || 404 == statusCode) {
                 message = "服务器异常，请稍后再试";

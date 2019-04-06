@@ -10,4 +10,6 @@ public interface OnDrawListener {
     void alertDialog(String... str);
 
     void saveLog(String... str);
+
+    void title(String toString);
 }

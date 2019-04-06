@@ -109,14 +109,16 @@ public class ApiStore {
                         .newBuilder()
                         .header("X-Requested-With","com.qihoo.gameunion")
 //                        .header("X-Requested-With", "XMLHttpRequest")
-//                        .header("X-Device", model)
-//                        .header("X-VersionName", "5.0.4")
-//                        .header("X-VersionCode", "296")
+                        .header("Referer", "http://huodong.mobilem.360.cn//html/bgxxlshyk.html?360appstore=1&from=mp_0320bgxxx&webpg=pushngames_20190320_bgxxxshyk&os=19&vc=300070181&v=7.1.81&os_version=4.4.2&md=M353&sn=6.119186756728438&cpu=qualcomm+msm+8974+hammerhead+%28flattened+device+tree%29&ca1=armeabi-v7a&ca2=armeabi&m=e252016d8706956d67cda733c5c06683&m2=fb262c4d2a0aa2be27b734194b205680&ch=8969405&ppi=720_1280&startCount=1&re=1&tid=0&cpc=1&snt=-1&nt=1&gender=-1&age=0&newuser=1&theme=2&br=Xiaomi&carrier_id=0&s_3pk=1&ui_version=green&prepage=yxygj_20180205_60ka13m0&curpage=pushngames_20190320_bgxxxshyk")
+                        .header("Accept-Encoding", "deflate")
+                        .header("Accept-Language", "en-US")
+//                        .header("Content-Type", "text/plain; charset=utf-8")
 //                        .header("X-Channel", "webwww")
 //                        .header("X-MajorVer", "5")
 //                        .header("User-Agent","Mozilla/5.0 (Linux; Android 6.0.1; MI5) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/51.0.2704.81 Mobile Safari/537.36;360appstore")
                         .header("User-Agent", ua)
-//                        .header("Cookie", cookie)
+                        .header("Accept", "*/*")
+                        .header("Cookie", "__guid=52855089.28830818364499212.1554448404124.3984")
                         .build();
                 Response response = chain.proceed(request);
                 return response;

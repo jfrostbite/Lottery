@@ -9,6 +9,8 @@ import com.kevin.lottery.http.ApiService;
 import com.kevin.lottery.http.ApiStore;
 import com.kevin.lottery.http.Constant;
 import com.kevin.lottery.utils.GsonUtils;
+import com.kevin.lottery.utils.MD5Utils;
+import com.kevin.utils.RandomUtils;
 import com.kevin.utils.TextUtils;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -20,6 +22,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
 
 import java.io.*;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -203,16 +206,20 @@ public class Controller implements OnDrawListener {
 
         btn_submit.setOnAction(e -> {
             TreeMap<String, String> map = new TreeMap<>();
-            map.put("ch", "interphoto_201612");
-            map.put("uname",tf_name.getText().trim());
-            map.put("mobile",tf_tel.getText().trim());
-            map.put("addr",tf_address.getText().trim());
-            map.put("winkey","09e3fc71a2bddefb1ce8a1efdf7fd2cf");
-            map.put("record","8789");
-            map.put("key","c6dc14bacad7cd9b828ac97ecde3d983");
-            Draw_Poco poco = new Draw_Poco(0, apiService);
+            String name = tf_name.getText();
+            String add = tf_address.getText();
+            try {
+                name = URLEncoder.encode(tf_name.getText(), "utf-8");
+                add = URLEncoder.encode(tf_address.getText(), "utf-8");
+            } catch (UnsupportedEncodingException ex) {
+                ex.printStackTrace();
+            }
+            map.put(Constant.ACCEPTER, name);
+            map.put(Constant.ADDRESS, add);
+            map.put(Constant.PHONE, tf_tel.getText());
+            Draw_360 poco = new Draw_360(apiService);
             poco.setOnDrawListener(this);
-            poco.preDraw(map).submit(map);
+            poco.submit(map);
         });
 
         btn_add.setOnAction(e -> {
@@ -233,7 +240,9 @@ public class Controller implements OnDrawListener {
      */
     private synchronized Map<String, String> getRequestMap(Draw_360 draw) {
         draw.setType("6");
-        return draw.generateMap(drawBeen.get(draw.getIndex()).getActivityId(), drawBeen.get(draw.getIndex()).getVerifyCode(), true);
+        String deviceId = "86" + RandomUtils.generateNumString(13);
+        deviceId = MD5Utils.md5(deviceId);
+        return draw.generateMap(drawBeen.get(draw.getIndex()).getActivityId(), drawBeen.get(draw.getIndex()).getVerifyCode(), deviceId, true);
     }
 
     private synchronized Map<String, String> getRequestMap(Draw_Poco draw) {
@@ -287,6 +296,11 @@ public class Controller implements OnDrawListener {
     @Override
     public void saveLog(String... str) {
         TextUtils.string2File(str[0] + "\n"+str[1]+"\n", "draw.txt", true);
+    }
+
+    @Override
+    public void title(String toString) {
+        tf_address.setText(toString);
     }
 
     class DrawTask extends Task<Void> {
